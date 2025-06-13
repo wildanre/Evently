@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { swaggerSpec, swaggerUi } from './config/swagger';
+import swaggerStaticRouter from './swagger-static';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -25,7 +26,21 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 
 // CORS configuration for production and development
 const corsOptions = {
@@ -56,10 +71,7 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Swagger Documentation
-const swaggerServe = swaggerUi.serve as any;
-const swaggerSetup = swaggerUi.setup(swaggerSpec) as any;
-app.use('/api-docs', swaggerServe, swaggerSetup);
+app.use(swaggerStaticRouter);
 
 // Routes
 app.use('/api/auth', authRoutes);

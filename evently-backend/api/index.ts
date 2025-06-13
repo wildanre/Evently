@@ -12,10 +12,7 @@ import { prisma } from '../src/utils/prisma';
 import authRoutes from '../src/routes/authRoutes';
 import eventRoutes from '../src/routes/eventRoutes';
 import userRoutes from '../src/routes/userRoutes';
-
-// Swagger
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from '../src/config/swagger';
+import swaggerStaticRouter from '../src/swagger-static';
 
 // Load environment variables
 dotenv.config();
@@ -30,7 +27,21 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
@@ -55,13 +66,13 @@ app.use(passport.session());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Swagger static router
+app.use(swaggerStaticRouter);
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/users', userRoutes);
-
-// Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

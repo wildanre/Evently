@@ -46,6 +46,7 @@
     "@types/node": "^20.19.0",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.16",
+    "@types/swagger-ui-dist": "^3.30.5",
     "prisma": "^6.9.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3",

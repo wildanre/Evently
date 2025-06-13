@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { prisma } from '../utils/prisma';
+import passport from '../config/passport';
+import { CreateUserData, AuthResponse } from '../types';
 
 const router: express.Router = express.Router();
 
@@ -114,6 +116,46 @@ router.post('/login', [
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Google OAuth routes
+// Initiate Google OAuth
+router.get('/google', 
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Google OAuth callback
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed` }),
+  async (req: express.Request, res: express.Response) => {
+    try {
+      const user = req.user as any;
+      
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET!,
+        { expiresIn: '7d' }
+      );
+
+      // Redirect to frontend with token
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profileImageUrl: user.profileImageUrl
+      }))}`);
+    } catch (error) {
+      console.error('Google callback error:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_failed`);
+    }
+  }
+);
+
+// Get OAuth login URL
+router.get('/google/url', (req: express.Request, res: express.Response) => {
+  const googleAuthUrl = `${req.protocol}://${req.get('host')}/api/auth/google`;
+  res.json({ url: googleAuthUrl });
 });
 
 export default router;

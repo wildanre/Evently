@@ -1,7 +1,14 @@
-import express from 'express';
+import express, { Response } from 'express';
 import { body, validationResult, query } from 'express-validator';
 import { prisma } from '../utils/prisma';
-import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
+import { 
+  AuthRequest, 
+  CreateEventData, 
+  UpdateEventData, 
+  EventFilters,
+  PaginationResponse 
+} from '../types';
 
 const router: express.Router = express.Router();
 
@@ -11,7 +18,7 @@ router.get('/', [
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('search').optional().isString().trim(),
   query('tags').optional().isString()
-], optionalAuth, async (req: AuthRequest, res: express.Response) => {
+], optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -137,7 +144,7 @@ router.post('/', [
   body('tags').optional().isArray().withMessage('Tags must be an array'),
   body('visibility').optional().isBoolean(),
   body('requireApproval').optional().isBoolean()
-], authenticateToken, async (req: AuthRequest, res: express.Response) => {
+], authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -201,7 +208,7 @@ router.put('/:id', [
   body('tags').optional().isArray().withMessage('Tags must be an array'),
   body('visibility').optional().isBoolean(),
   body('requireApproval').optional().isBoolean()
-], authenticateToken, async (req: AuthRequest, res: express.Response) => {
+], authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -337,7 +344,7 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
 });
 
 // Unregister from event
-router.delete('/:id/register', authenticateToken, async (req: AuthRequest, res) => {
+router.delete('/:id/register', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 

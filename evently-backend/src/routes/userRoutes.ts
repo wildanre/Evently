@@ -1,12 +1,13 @@
-import express from 'express';
+import express, { Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { prisma } from '../utils/prisma';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { AuthRequest, UpdateUserData } from '../types';
 
 const router: express.Router = express.Router();
 
 // Get user profile
-router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },

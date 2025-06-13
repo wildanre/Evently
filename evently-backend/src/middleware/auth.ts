@@ -1,14 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma';
-
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-  };
-}
+import { AuthRequest } from '../types';
 
 export const authenticateToken = async (
   req: AuthRequest,
@@ -28,7 +21,7 @@ export const authenticateToken = async (
     // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true }
+      select: { id: true, email: true, name: true, profileImageUrl: true, bio: true }
     });
 
     if (!user) {
@@ -56,7 +49,7 @@ export const optionalAuth = async (
       const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, email: true, name: true }
+        select: { id: true, email: true, name: true, profileImageUrl: true, bio: true }
       });
       
       if (user) {

@@ -16,7 +16,7 @@ export default function Providers({
       disableTransitionOnChange
     >
       <Toaster />
-      {children}
+        {children}
     </ThemeProvider>
   )
 }

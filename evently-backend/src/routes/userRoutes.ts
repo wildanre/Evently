@@ -72,7 +72,7 @@ router.put(
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            const { name, bio, profileImageUrl } = req.body;
+            const { name, bio, profileImageUrl } = req.body as UpdateUserData;
 
             const updatedUser = await prisma.user.update({
                 where: { id: req.user!.id },

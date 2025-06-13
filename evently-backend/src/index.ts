@@ -94,7 +94,25 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Evently Backend server is running on port ${PORT}`);
   console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+});
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  server.close(async () => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(async () => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Compass, Github, LogIn, Search, Ticket } from "lucide-react";
+import { Bell, Compass, Github, LogIn, Search, Ticket, User } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Avatar } from "./ui/avatar";
@@ -8,6 +8,10 @@ import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -55,16 +59,58 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" className="font-bold px-0">Create Event</Button>
+            <Button variant="ghost" className="font-bold px-0 text-gray-300">Create Event</Button>
             <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
             <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-            <Avatar className="cursor-pointer">
-              <AvatarFallback>CN</AvatarFallback>
-              <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
-            </Avatar>
+            <UserMenu>
+              <Avatar className="cursor-pointer">
+                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+              </Avatar>
+            </UserMenu>
           </div>
         </div>
       </div>
     </nav>
+  );
+}
+
+const UserMenu = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        {children}
+      </SheetTrigger>
+      <SheetContent overlay={false} close={false} className="w-70 h-fit absolute right-5 top-16 border rounded-xl bg-background/80">
+        <div className="flex flex-col items-start p-1 gap-1">
+          <div className="flex items-center gap-3 w-full p-2 hover:bg-foreground/10 rounded-xl cursor-pointer">
+            <Avatar className="cursor-pointer h-10 w-10">
+              <AvatarFallback>CN</AvatarFallback>
+              <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-bold">John Doe</span>
+              <span className="text-xs text-gray-300 font-semibold">john.doe@gmail.com</span>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex flex-col w-full">
+            <Link href="/profile" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <span>View Profile</span>
+            </Link>
+            <Link href="/settings" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <span>Settings</span>
+            </Link>
+            <div className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <span>Logout</span>
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

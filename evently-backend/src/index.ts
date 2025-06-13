@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { specs, swaggerUi } from './config/swagger';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -32,6 +33,11 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Swagger Documentation
+const swaggerServe = swaggerUi.serve as any;
+const swaggerSetup = swaggerUi.setup(specs) as any;
+app.use('/api-docs', swaggerServe, swaggerSetup);
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
@@ -42,7 +48,8 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     message: 'Evently Backend API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    documentation: `${req.protocol}://${req.get('host')}/api-docs`
   });
 });
 

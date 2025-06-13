@@ -6,10 +6,134 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+enum EventRole {
+  ATTENDEE
+  SPEAKER
+  ORGANIZER
+  MANAGER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  OPEN
+  CLOSED
+  WAITLIST
+}
+
+model Event {
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  location              String?
+  visibility            Boolean  @default(true)
+  tags                  String[] @default([])
+  imageUrl              String?
+  status                EventStatus @default(PUBLISHED)
+  requireApproval       Boolean  @default(false)
+  capacity              Int?     
+  attendeeCount         Int      @default(0)
+  
+  startDate             DateTime
+  endDate               DateTime
+  registrationStartDate DateTime @default(now())
+  registrationEndDate   DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  organizer             User     @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  organizerId           String
+  
+  attendees             EventParticipant[] @relation("EventAttendees")
+  speakers              EventParticipant[] @relation("EventSpeakers") 
+  managers              EventParticipant[] @relation("EventManagers")
+  
+  feedback              EventFeedback[]
+  feedbackCount         Int      @default(0)
+  feedbackAverageRating Float    @default(0.0)
+  
+  @@map("events")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  password          String?
+  profileImageUrl   String?
+  bio               String?
+  
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  
+  eventsOrganized   Event[]  @relation("OrganizerEvents")
+  
+  
+  eventParticipation EventParticipant[]
+  
+  
+  feedbackGiven     EventFeedback[]
+  
+  @@map("users")
+}
+
+model EventParticipant {
+  id        String    @id @default(cuid())
+  role      EventRole
+  status    String    @default("confirmed") 
+  
+  
+  event     Event     @relation("EventAttendees", fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  
+  speakerEvent Event? @relation("EventSpeakers", fields: [speakerEventId], references: [id])
+  speakerEventId String?
+  
+  managerEvent Event? @relation("EventManagers", fields: [managerEventId], references: [id])
+  managerEventId String?
+  
+  
+  registeredAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  
+  @@unique([eventId, userId])
+  @@map("event_participants")
+}
+
+model EventFeedback {
+  id        String   @id @default(cuid())
+  rating    Int      
+  comment   String?
+  
+  
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  
+  @@unique([eventId, userId])
+  @@map("event_feedback")
 }

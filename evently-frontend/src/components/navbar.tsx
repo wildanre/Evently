@@ -1,65 +1,116 @@
 "use client";
 
-import { LINKS } from "@/lib/data";
-import { ANIMATION_DELAY, cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { Bell, Compass, Github, LogIn, Search, Ticket, User } from "lucide-react";
 import Link from "next/link";
-import { useActiveContext } from "./provider/active-section-context";
+import { Button } from "./ui/button";
+import { Avatar } from "./ui/avatar";
+import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
 
-export default function Header() {
-  const { activeSection, setActiveSection, setTimeOfLastClick } =
-    useActiveContext();
+export default function Navbar() {
+  const pathname = usePathname();
 
   return (
-    <header className="z-[999] relative">
-      <motion.div
-        initial={{ y: -100, x: "-50%", opacity: 0 }}
-        animate={{ y: 0, x: "-50%", opacity: 1 }}
-        transition={{ delay: ANIMATION_DELAY }}
-        className="fixed top-0 left-1/2 h-[4.5rem] rounded-xl border-opacity-40 bg-[#292929] bg-opacity-50 shadow-lg shadow-black/[0.03] backdrop-blur-[0.5rem] sm:top-6 sm:h-[3.25rem] sm:w-[28rem] sm:rounded-xl"
-      />
-
-      <nav className="flex fixed top-[0.15rem] left-1/2 h-12 -translate-x-1/2 py-2 sm:top-[1.7rem] sm:h-[initial] sm:py-0 z-[999]">
-        <ul className="flex w-[22rem] flex-wrap items-center justify-center gap-1 text-[0.9rem] font-normal text-[#e3dfd3] sm:w-[initial] sm:flex-nowrap sm:gap-2">
-          {LINKS.map((link, index) => (
-            <motion.li
-              key={index}
-              initial={{ y: -100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: ANIMATION_DELAY, staggerChildren: 0.2 }}
-              className="h-3/4 flex items-center justify-center relative"
+    <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-background">
+      <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-5">
+            <Link
+              href={"/events"}
+              className="flex-shrink-0"
             >
+              <Image
+                src="/logo-white.png"
+                alt="Logo"
+                width={100}
+                height={100}
+                className="h-6 w-6 rounded-full"
+              />
+            </Link>
+            <div className="flex items-center gap-1">
               <Link
-                className={cn(
-                  "flex w-full items-center justify-center px-4 sm:px-3 py-3 hover:text-[#d1a366] transition",
-                  {
-                    "text-[#ffffe3b9]": activeSection === link.name,
-                  }
-                )}
-                href={link.href}
-                onClick={() => {
-                  setActiveSection(link.name);
-                  setTimeOfLastClick(Date.now());
-                }}
+                href={"/events"}
+                className="text-sm text-foreground"
               >
-                {link.name}
-
-                {link.name === activeSection && (
-                  <motion.span
-                    className="mx-3 absolute inset-0 -z-10 border-[#e3dfd3] border-b-2 sm:mb-1"
-                    layoutId="activeSection"
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                    }}
-                  />
-                )}
+                <Button variant="ghost" className={cn("rounded-2xl text-sm px-4 h-8 text-gray-300", pathname === "/events" ? "text-white font-bold" : "font-regular")}>
+                  <Ticket />
+                  <span>
+                    Events
+                  </span>
+                </Button>
               </Link>
-            </motion.li>
-          ))}
-        </ul>
-      </nav>
-    </header>
+              <Link
+                href={"/discover"}
+                className="text-sm text-foreground"
+              >
+                <Button variant="ghost" className={cn("rounded-2xl text-sm px-4 h-8 text-gray-300", pathname === "/discover" ? "text-white font-bold" : "font-regular")}>
+                  <Compass />
+                  <span>
+                    Discover
+                  </span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" className="font-bold px-0 text-gray-300">Create Event</Button>
+            <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+            <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+            <UserMenu>
+              <Avatar className="cursor-pointer">
+                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+              </Avatar>
+            </UserMenu>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+const UserMenu = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        {children}
+      </SheetTrigger>
+      <SheetContent overlay={false} close={false} className="w-70 h-fit absolute right-5 top-16 border rounded-xl bg-background/80">
+        <div className="flex flex-col items-start p-1 gap-1">
+          <div className="flex items-center gap-3 w-full p-2 hover:bg-foreground/10 rounded-xl cursor-pointer">
+            <Avatar className="cursor-pointer h-10 w-10">
+              <AvatarFallback>CN</AvatarFallback>
+              <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-bold">John Doe</span>
+              <span className="text-xs text-gray-300 font-semibold">john.doe@gmail.com</span>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex flex-col w-full">
+            <Link href="/profile" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <span>View Profile</span>
+            </Link>
+            <Link href="/settings" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <span>Settings</span>
+            </Link>
+            <div className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <span>Logout</span>
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -9,15 +9,18 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Card } from "./ui/card";
+import React from "react";
 
 export default function Navbar() {
+  const [isLogin, setIsLogin] = React.useState(false);
+
   const pathname = usePathname();
 
   return (
-    <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-background">
+    <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
       <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-5">
@@ -58,18 +61,80 @@ export default function Navbar() {
               </Link>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <Button variant="ghost" className="font-bold px-0 text-gray-300">Create Event</Button>
             <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
             <NotificationMenu>
               <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
             </NotificationMenu>
-            <UserMenu>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" className="font-bold px-0 w-16 text-gray-300">
+                  Login
+                  <LogIn className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                {isLogin ? (
+                  <React.Fragment>
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-semibold">Login to Your Account</DialogTitle>
+                      <DialogDescription className="text-sm text-gray-500">
+                        Please enter your email and password to login.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form className="flex flex-col gap-4">
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Password"
+                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <Button type="submit" className="w-full">Login</Button>
+                      <span className="text-sm text-center text-gray-300">Don't have an account? <button onClick={() => setIsLogin(false)} className="text-white cursor-pointer">Register</button></span>
+                    </form>
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-semibold">Register</DialogTitle>
+                      <DialogDescription className="text-sm text-gray-500">
+                        Please fill in the details below to create a new account.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form className="flex flex-col gap-4">
+                      <input
+                        type="text"
+                        placeholder="Full Name"
+                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Password"
+                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <Button type="submit" className="w-full">Register</Button>
+                      <span className="text-sm text-center text-gray-300">Already have an account? <button onClick={() => setIsLogin(true)} className="text-white cursor-pointer">Login</button></span>
+                    </form>
+                  </React.Fragment>
+                )}
+              </DialogContent>
+            </Dialog>
+            {/* <UserMenu>
               <Avatar className="cursor-pointer">
                 <AvatarFallback>CN</AvatarFallback>
                 <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
               </Avatar>
-            </UserMenu>
+            </UserMenu> */}
           </div>
         </div>
       </div>

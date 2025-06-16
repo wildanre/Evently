@@ -12,6 +12,10 @@ const options = {
     },
     servers: [
       {
+        url: 'https://evently-backend-seven.vercel.app/',
+        description: 'Production server',
+      },
+      {
         url: 'http://localhost:3001',
         description: 'Local server',
       },

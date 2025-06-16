@@ -23,7 +23,7 @@ const VisibilitySelect = () => {
 
   return (
     <Select defaultValue="public">
-      <SelectTrigger className="w-[140px] bg-[#1a1a2e]">
+      <SelectTrigger className="w-[140px] ">
         <SelectValue placeholder="Select visibility" />
       </SelectTrigger>
       <SelectContent>

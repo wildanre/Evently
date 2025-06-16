@@ -15,6 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import Timeline from "./timeline";
 
 // Time options in 24-hour format with 30-minute intervals
 const timeOptions: { value: string; label: string }[] = [];
@@ -88,70 +89,59 @@ const DateTimeRow = ({
   const [isTimeOpen, setIsTimeOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex flex-col items-center">
-        <div
-          className={`w-3 h-3 rounded-full border-2 ${
-            isStart ? "bg-white border-white" : "bg-transparent border-white/60"
-          }`}
-        />
-
+    <div className="flex justify-between items-center mx-1 gap-4">
+      <div className="flex gap-0.5">
+        {/* Date picker */}
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className="bg-black/20 hover:bg-black/30 text-white border-0 rounded-l-lg rounded-r-none h-auto text-sm font-sm min-w-[140px] justify-start"
+            >
+              {formatDate(date)}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={date ?? undefined}
+              onSelect={(newDate) => {
+                onDateChange(newDate || null);
+                setIsCalendarOpen(false);
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        {/* Time picker */}
+        <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className="bg-black/20 hover:bg-black/30 text-white border-0 rounded-r-lg rounded-l-none h-auto text-sm font-sm  justify-center"
+            >
+              {time || "00.00"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-40 p-0" align="center">
+            <div className="max-h-60 overflow-y-auto">
+              {timeOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  variant="ghost"
+                  className="w-full justify-start font-normal hover:bg-gray-100"
+                  onClick={() => {
+                    onTimeChange(option.value);
+                    setIsTimeOpen(false);
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
-
-      {/* Label */}
-      <div className="text-white/80 text-lg font-medium w-12">{label}</div>
-
-      {/* Date picker */}
-      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            className="bg-black/20 hover:bg-black/30 text-white border-0 rounded-lg px-4 py-3 h-auto text-lg font-medium min-w-[140px] justify-start"
-          >
-            {formatDate(date)}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <CalendarComponent
-            mode="single"
-            selected={date ?? undefined}
-            onSelect={(newDate) => {
-              onDateChange(newDate || null);
-              setIsCalendarOpen(false);
-            }}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
-
-      {/* Time picker */}
-      <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            className="bg-black/20 hover:bg-black/30 text-white border-0 rounded-lg px-4 py-3 h-auto text-lg font-medium min-w-[80px] justify-center"
-          >
-            {time || "00.00"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-40 p-0" align="center">
-          <div className="max-h-60 overflow-y-auto">
-            {timeOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant="ghost"
-                className="w-full justify-start font-normal hover:bg-gray-100"
-                onClick={() => {
-                  onTimeChange(option.value);
-                  setIsTimeOpen(false);
-                }}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
     </div>
   );
 };
@@ -168,22 +158,28 @@ const TimezoneDisplay = ({
   const selectedTimezone = timezones.find((tz) => tz.value === timezone);
 
   return (
-    <Select value={timezone} onValueChange={onTimezoneChange}>
-      <SelectTrigger className="bg-black/20 hover:bg-black/30 text-white border-0 rounded-lg px-6 py-15 h-auto min-w-[140px]">
-        <div className="flex flex-col text-left gap-3">
-          <Globe className="w-5 h-5 text-white/80" />
-          <div className="text-lg font-medium text-white">{timezone}</div>
-          <div className="text-sm text-white/60">{selectedTimezone?.city}</div>
-        </div>
-      </SelectTrigger>
-      <SelectContent>
-        {timezones.map((tz) => (
-          <SelectItem key={tz.value} value={tz.value}>
-            {tz.label} ({tz.city})
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="bg-neutral-900 py-7.5 px-1 rounded-lg flex ">
+      <Select value={timezone} onValueChange={onTimezoneChange}>
+        <SelectTrigger className="w-[200px] h-[100px] text-white border-0 rounded-lg mx-1 px-4 py-3">
+          <div className="flex flex-col  text-left gap-2 overflow-hidden truncate">
+            <Globe className="w-5 h-5 text-white/80" />
+            <div className="text-lg font-medium text-white truncate">
+              {timezone}
+            </div>
+            <div className="text-sm text-white/60 truncate">
+              {selectedTimezone?.city}
+            </div>
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {timezones.map((tz) => (
+            <SelectItem key={tz.value} value={tz.value}>
+              {tz.label} ({tz.city})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
 
@@ -213,17 +209,17 @@ export const EventDateTimePicker = ({
   onTimezoneChange,
 }: EventDateTimePickerProps) => {
   return (
-    <div className="bg-gray-900 p-6 rounded-2xl">
-      <div className="flex items-start gap-8">
-        {/* Date/Time Section */}
-        <div className="flex-1 space-y-4">
+    <div className="flex items-start gap-2">
+      <div className="flex  gap-7 items-center justify-between bg-neutral-900 p-2 rounded-lg">
+        <Timeline />
+        <div className="gap-1 space-y-2">
           <DateTimeRow
             label="Start"
             date={startDate}
             time={startTime}
             onDateChange={onStartDateChange}
             onTimeChange={onStartTimeChange}
-            isStart={true}
+            isStart={false}
           />
           <DateTimeRow
             label="End"
@@ -234,14 +230,14 @@ export const EventDateTimePicker = ({
             isStart={false}
           />
         </div>
+      </div>
 
-        {/* Timezone Section */}
-        <div className="flex-shrink-0 ">
-          <TimezoneDisplay
-            timezone={timezone}
-            onTimezoneChange={onTimezoneChange}
-          />
-        </div>
+      {/* Timezone Section */}
+      <div className="flex-shrink-0 ">
+        <TimezoneDisplay
+          timezone={timezone}
+          onTimezoneChange={onTimezoneChange}
+        />
       </div>
     </div>
   );

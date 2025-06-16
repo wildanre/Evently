@@ -42,7 +42,7 @@ export default function EventCreationForm() {
   const [timezone, setTimezone] = useState("GMT+07:00");
 
   return (
-    <div className="w-full max-w-5xl grid md:grid-cols-[1fr_1.5fr] gap-6 bg-black rounded-lg">
+    <div className="w-full mx-4 max-w-5xl grid md:grid-cols-[1fr_1.5fr] gap-6 bg-gradient-to-b from-neutral-900 to-black mt-4">
       <div className="relative flex flex-col">
         <div className="aspect-square bg-[#0f0f1a] rounded-lg overflow-hidden flex items-center justify-center relative">
           <div className="absolute inset-0 flex items-center justify-center">
@@ -87,7 +87,7 @@ export default function EventCreationForm() {
       {/* Right side - Event details form */}
       <div className="flex flex-col gap-5">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2 bg-[#1a1a2e] rounded-md px-3 py-1.5">
+          <div className="flex items-center gap-2 bg-neutral-800 border-1 rounded-md px-3 py-1.5">
             <Calendar className="h-4 w-4 text-gray-400" />
             <span className="text-sm">Personal Calendar</span>
             <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -99,13 +99,12 @@ export default function EventCreationForm() {
         <div>
           <Input
             placeholder="Event Name"
-            className="text-2xl font-semibold bg-transparent border-none px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+            className=" bg-transparent border-none px-0 h-auto py-6 focus-visible:ring-0 focus-visible:ring-offset-0"
             value={eventName}
             onChange={(e) => setEventName(e.target.value)}
           />
         </div>
 
-        {/* Date and time */}
         <div className="grid gap-3">
           <EventDateTimePicker
             startDate={startDate}
@@ -121,7 +120,6 @@ export default function EventCreationForm() {
           />
         </div>
 
-        {/* Location */}
         <div className="flex items-center gap-3 bg-[#1a1a2e] rounded-md p-3">
           <MapPin className="h-5 w-5 text-gray-400" />
           <div className="flex-1">
@@ -140,7 +138,6 @@ export default function EventCreationForm() {
           </div>
         </div>
 
-        {/* Event options */}
         <div className="space-y-4">
           <p className="text-sm font-medium">Event Options</p>
 

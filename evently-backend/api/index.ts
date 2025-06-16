@@ -68,7 +68,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://evently-backend-seven.vercel.app',
+      'https://evently-backend-amber.vercel.app',
       process.env.FRONTEND_URL,
       // Allow all Vercel domains for API documentation
       /\.vercel\.app$/,

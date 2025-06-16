@@ -13,7 +13,7 @@ const options = {
     servers: [
       {
         url: process.env.NODE_ENV === 'production' 
-          ? 'https://evently-backend-seven.vercel.app/'
+          ? 'https://evently-backend-amber.vercel.app/'
           : 'http://localhost:3001',
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Local server',
       },

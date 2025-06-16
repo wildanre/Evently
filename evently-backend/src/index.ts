@@ -101,6 +101,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(swaggerStaticRouter);
 
+// Redirect root to API documentation
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);

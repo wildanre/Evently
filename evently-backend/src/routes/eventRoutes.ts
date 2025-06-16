@@ -12,7 +12,37 @@ import {
 
 const router: express.Router = express.Router();
 
-// Get all events with filtering and pagination
+/**
+ * @swagger
+ * /api/events:
+ *   get:
+ *     summary: Get all events with filtering and pagination
+ *     tags: [Events]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search keyword
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Comma separated tags
+ *     responses:
+ *       200:
+ *         description: List of events
+ */
 router.get('/', [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
@@ -81,7 +111,25 @@ router.get('/', [
   }
 });
 
-// Get single event
+/**
+ * @swagger
+ * /api/events/{id}:
+ *   get:
+ *     summary: Get single event by ID
+ *     tags: [Events]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: Event detail
+ *       404:
+ *         description: Event not found
+ */
 router.get('/:id', optionalAuth, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;

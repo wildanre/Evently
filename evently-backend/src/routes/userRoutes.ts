@@ -6,6 +6,20 @@ import { AuthRequest, UpdateUserData } from '../types';
 
 const router: express.Router = express.Router();
 
+/**
+ * @swagger
+ * /api/users/profile:
+ *   get:
+ *     summary: Get user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *       404:
+ *         description: User not found
+ */
 // Get user profile
 router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -38,6 +52,37 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
+/**
+ * @swagger
+ * /api/users/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 2
+ *               bio:
+ *                 type: string
+ *               profileImageUrl:
+ *                 type: string
+ *                 format: uri
+ *     responses:
+ *       200:
+ *         description: User profile updated
+ *       400:
+ *         description: Validation errors
+ *       500:
+ *         description: Internal server error
+ */
 // Update user profile
 interface UpdateProfileRequestBody {
     name?: string;
@@ -72,7 +117,7 @@ router.put(
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            const { name, bio, profileImageUrl } = req.body;
+            const { name, bio, profileImageUrl } = req.body as UpdateUserData;
 
             const updatedUser = await prisma.user.update({
                 where: { id: req.user!.id },
@@ -99,6 +144,18 @@ router.put(
     }
 );
 
+/**
+ * @swagger
+ * /api/users/organized-events:
+ *   get:
+ *     summary: Get events organized by user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of organized events
+ */
 // Get user's organized events
 router.get('/organized-events', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -117,6 +174,18 @@ router.get('/organized-events', authenticateToken, async (req: AuthRequest, res)
   }
 });
 
+/**
+ * @swagger
+ * /api/users/registered-events:
+ *   get:
+ *     summary: Get events registered by user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of registered events
+ */
 // Get user's registered events
 router.get('/registered-events', authenticateToken, async (req: AuthRequest, res) => {
   try {

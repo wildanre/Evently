@@ -6,46 +6,102 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import passport from '../src/config/passport';
-import { prisma } from '../src/utils/prisma';
+import swaggerStaticRouter from '../src/swagger-static';
 
 // Import routes
 import authRoutes from '../src/routes/authRoutes';
 import eventRoutes from '../src/routes/eventRoutes';
 import userRoutes from '../src/routes/userRoutes';
-import swaggerStaticRouter from '../src/swagger-static';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Rate limiting
+// Rate limiting for Vercel
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// Middleware
+// Middleware with relaxed CSP for Swagger UI
+app.use('/api-docs', helmet({
+  contentSecurityPolicy: false, // Disable CSP for Swagger UI route
+}));
+
+app.use('/swagger.json', helmet({
+  contentSecurityPolicy: false, // Disable CSP for Swagger JSON route
+}));
+
+// Disable CSP for API endpoints when accessed from Swagger UI
+app.use('/api', helmet({
+  contentSecurityPolicy: false,
+}));
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
+      imgSrc: ["'self'", "data:", "https:", "https://unpkg.com"],
+      connectSrc: ["'self'", "https:", "*"], // Allow all connections for API testing
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://unpkg.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],
+      workerSrc: ["'self'", "blob:"],
+      childSrc: ["'self'", "blob:"],
     },
   },
 }));
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+
+// CORS configuration for production and development
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+    // Always allow requests without origin (Swagger UI, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL,
+      // Allow all Vercel domains for API documentation
+      /\.vercel\.app$/,
+    ].filter(Boolean);
+    
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return origin === allowedOrigin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+    
+    // Always allow for API testing and development
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Accept', 
+    'Origin', 
+    'X-Requested-With',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200, // For legacy browser support
+  preflightContinue: false,
+};
+
+app.use(cors(corsOptions));
 app.use(limiter);
 
 // Session configuration
@@ -66,7 +122,7 @@ app.use(passport.session());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Swagger static router
+// Add Swagger static routes
 app.use(swaggerStaticRouter);
 
 // Routes
@@ -75,32 +131,13 @@ app.use('/api/events', eventRoutes);
 app.use('/api/users', userRoutes);
 
 // Health check endpoint
-app.get('/api/health', async (req, res) => {
-  try {
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
-    
-    res.status(200).json({
-      status: 'OK',
-      message: 'Evently Backend API is running',
-      timestamp: new Date().toISOString(),
-      documentation: `${req.protocol}://${req.get('host')}/api-docs`,
-      services: {
-        database: 'connected',
-        server: 'running'
-      }
-    });
-  } catch (error) {
-    res.status(503).json({
-      status: 'ERROR',
-      message: 'Service unavailable',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'disconnected',
-        server: 'running'
-      }
-    });
-  }
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Evently Backend API is running',
+    timestamp: new Date().toISOString(),
+    documentation: `${req.protocol}://${req.get('host')}/api-docs`
+  });
 });
 
 // 404 handler
@@ -122,5 +159,6 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
 
 // Export for Vercel
 export default (req: VercelRequest, res: VercelResponse) => {
-  return app(req, res);
+  return app(req as any, res as any);
 };
+

@@ -45,7 +45,21 @@ export interface EventFilters {
   tags?: string;
 }
 
-// Get all events with optional filters
+export interface EventCategory {
+  id: string;
+  name: string;
+  count: number;
+  icon: string;
+  color: string;
+}
+
+export interface DiscoverData {
+  categories: EventCategory[];
+  featuredEvents: Event[];
+  trendingEvents: Event[];
+  localEvents: Event[];
+}
+
 export async function getEvents(filters?: EventFilters): Promise<EventsResponse> {
   const searchParams = new URLSearchParams();
   
@@ -117,5 +131,70 @@ export async function unregisterFromEvent(eventId: string): Promise<{ message: s
   }
   
   return response.json();
+}
+
+export async function getFeaturedEvents(limit = 4): Promise<Event[]> {
+  const response = await fetch(`${API_BASE_URL}/events?limit=${limit}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch featured events');
+  }
+  
+  const data = await response.json();
+  // Sort by attendee count client-side since backend doesn't support this sort
+  const sortedEvents = data.events.sort((a: Event, b: Event) => b.attendeeCount - a.attendeeCount);
+  return sortedEvents;
+}
+
+export async function getEventsByCategory(category: string, limit = 4): Promise<Event[]> {
+  const response = await fetch(`${API_BASE_URL}/events?tags=${category}&limit=${limit}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch category events');
+  }
+  
+  const data = await response.json();
+  return data.events;
+}
+
+export async function getUpcomingEvents(limit = 4): Promise<Event[]> {
+  const response = await fetch(`${API_BASE_URL}/events?limit=${limit}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch upcoming events');
+  }
+  
+  const data = await response.json();
+  return data.events;
+}
+
+export async function getEventCategories(): Promise<EventCategory[]> {
+  const categories = [
+    { id: 'technology', name: 'Technology', icon: 'Code', color: 'bg-blue-500' },
+    { id: 'business', name: 'Business', icon: 'Briefcase', color: 'bg-green-500' },
+    { id: 'design', name: 'Design', icon: 'Palette', color: 'bg-purple-500' },
+    { id: 'music', name: 'Music', icon: 'Music', color: 'bg-pink-500' },
+    { id: 'health', name: 'Health & Wellness', icon: 'Heart', color: 'bg-red-500' },
+    { id: 'gaming', name: 'Gaming', icon: 'Gamepad2', color: 'bg-indigo-500' },
+    { id: 'education', name: 'Education', icon: 'BookOpen', color: 'bg-yellow-500' },
+    { id: 'social', name: 'Social', icon: 'Coffee', color: 'bg-orange-500' },
+  ];
+
+  const categoriesWithCounts = await Promise.all(
+    categories.map(async (category) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/events?tags=${category.id}&limit=1`);
+        if (response.ok) {
+          const data = await response.json();
+          return { ...category, count: data.pagination.total };
+        }
+        return { ...category, count: 0 };
+      } catch (error) {
+        return { ...category, count: 0 };
+      }
+    })
+  );
+
+  return categoriesWithCounts;
 }
 

@@ -8,95 +8,130 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { CalendarDays, MapPin, Users, Search, Filter, X, Sun, Moon, Grid3X3, List, RefreshCw, AlertCircle, ChevronRight, Briefcase, Code, Palette, Music, Heart, Gamepad2, BookOpen, Coffee, Zap, TrendingUp, Navigation } from 'lucide-react';
-import { getEvents, Event, EventsResponse } from '@/lib/events';
+import { getEvents, Event, EventsResponse, getEventCategories, getFeaturedEvents, getUpcomingEvents, getEventsByCategory, EventCategory } from '@/lib/events';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type ViewMode = 'grid' | 'list';
 
-// Mock data for categories
-const categories = [
-  { id: 'tech', name: 'Technology', icon: Code, color: 'bg-blue-500', count: 142 },
-  { id: 'business', name: 'Business', icon: Briefcase, color: 'bg-green-500', count: 89 },
-  { id: 'design', name: 'Design', icon: Palette, color: 'bg-purple-500', count: 67 },
-  { id: 'music', name: 'Music', icon: Music, color: 'bg-pink-500', count: 124 },
-  { id: 'health', name: 'Health & Wellness', icon: Heart, color: 'bg-red-500', count: 78 },
-  { id: 'gaming', name: 'Gaming', icon: Gamepad2, color: 'bg-indigo-500', count: 45 },
-  { id: 'education', name: 'Education', icon: BookOpen, color: 'bg-yellow-500', count: 93 },
-  { id: 'social', name: 'Social', icon: Coffee, color: 'bg-orange-500', count: 156 },
-];
+// Icon mapping for categories
+const getIconComponent = (iconName: string) => {
+  const icons: { [key: string]: any } = {
+    Code,
+    Briefcase,
+    Palette,
+    Music,
+    Heart,
+    Gamepad2,
+    BookOpen,
+    Coffee,
+  };
+  return icons[iconName] || Code;
+};
 
-// Mock trending events
-const trendingEvents = [
-  {
-    id: 1,
-    title: "AI Revolution Summit 2025",
-    description: "Join industry leaders as they discuss the future of artificial intelligence and machine learning.",
-    image: "/api/placeholder/400/240",
-    date: "June 25, 2025",
-    location: "San Francisco, CA"
-  },
-  {
-    id: 2,
-    title: "Startup Pitch Night",
-    description: "Watch innovative startups pitch their ideas to top investors in this exciting competition.",
-    image: "/api/placeholder/400/240",
-    date: "June 20, 2025",
-    location: "New York, NY"
-  },
-  {
-    id: 3,
-    title: "Design Thinking Workshop",
-    description: "Learn the fundamentals of design thinking and how to apply them to solve complex problems.",
-    image: "/api/placeholder/400/240",
-    date: "June 22, 2025",
-    location: "Los Angeles, CA"
-  },
-  {
-    id: 4,
-    title: "Music Festival 2025",
-    description: "Experience the best in live music with performances from top artists across multiple genres.",
-    image: "/api/placeholder/400/240",
-    date: "July 15, 2025",
-    location: "Austin, TX"
-  }
-];
+// Helper function to format dates
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
 
-// Mock local events
-const localEvents = [
-  {
-    id: 5,
-    title: "Coffee & Code Meetup",
-    description: "Weekly gathering for developers to network, share ideas, and collaborate on projects.",
-    image: "/api/placeholder/400/240",
-    date: "Every Wednesday",
-    location: "Local Coffee Shop"
-  },
-  {
-    id: 6,
-    title: "Morning Yoga Class",
-    description: "Start your day with a peaceful yoga session suitable for all skill levels.",
-    image: "/api/placeholder/400/240",
-    date: "Daily at 7:00 AM",
-    location: "Community Center"
-  },
-  {
-    id: 7,
-    title: "Book Club Discussion",
-    description: "Monthly book club meeting to discuss our latest read and share recommendations.",
-    image: "/api/placeholder/400/240",
-    date: "Last Friday of Month",
-    location: "Public Library"
-  },
-  {
-    id: 8,
-    title: "Local Art Exhibition",
-    description: "Showcase of works by local artists featuring paintings, sculptures, and digital art.",
-    image: "/api/placeholder/400/240",
-    date: "June 18-30, 2025",
-    location: "Downtown Gallery"
-  }
-];
+// Simple Event Card Component
+const SimpleEventCard = ({ event, onClick }: { event: Event, onClick?: () => void }) => (
+  <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border cursor-pointer" onClick={onClick}>
+    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+      <img
+        src={event.imageUrl || "/api/placeholder/400/300"}
+        alt={event.name}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        onError={(e) => {
+          e.currentTarget.src = "/api/placeholder/400/300";
+        }}
+      />
+      {event.tags.length > 0 && (
+        <div className="absolute top-2 left-2">
+          <Badge variant="secondary" className="bg-black/50 text-white text-xs">
+            {event.tags[0]}
+          </Badge>
+        </div>
+      )}
+      <div className="absolute top-2 right-2">
+        <Badge variant="outline" className="bg-white/90 text-black text-xs">
+          <Users className="h-3 w-3 mr-1" />
+          {event.attendeeCount}
+        </Badge>
+      </div>
+    </div>
+    <CardContent className="p-4">
+      <h3 className="font-semibold text-lg line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+        {event.name}
+      </h3>
+      <p className="text-sm text-muted-foreground dark:text-gray-400 line-clamp-3 leading-relaxed">
+        {event.description}
+      </p>
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center text-xs text-muted-foreground dark:text-gray-500">
+          <CalendarDays className="h-3 w-3 mr-1" />
+          {formatDate(event.startDate)}
+        </div>
+        {event.capacity && (
+          <div className="text-xs text-muted-foreground">
+            {event.attendeeCount}/{event.capacity}
+          </div>
+        )}
+      </div>
+      {event.location && (
+        <div className="flex items-center mt-1 text-xs text-muted-foreground dark:text-gray-500">
+          <MapPin className="h-3 w-3 mr-1" />
+          {event.location}
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-3">
+        <div className="text-xs text-muted-foreground">
+          by {event.users.name}
+        </div>
+        {event.status === 'PUBLISHED' && (
+          <Badge className="text-xs bg-green-100 text-green-800">
+            Available
+          </Badge>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Category Card Component
+const CategoryCard = ({ category }: { category: EventCategory }) => {
+  const IconComponent = getIconComponent(category.icon);
+  return (
+    <Card 
+      className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border dark:border-neutral-600 bg-card cursor-pointer"
+    >
+      <CardContent className="p-6 text-center">
+        <div className={`w-16 h-16 ${category.color} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
+          <IconComponent className="h-8 w-8 text-white" />
+        </div>
+        <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+          {category.name}
+        </h3>
+        <p className="text-sm text-muted-foreground dark:text-gray-400">
+          {category.count} events
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function DiscoverPage() {
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+  
+  // States for all events view
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +139,6 @@ export default function DiscoverPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -112,6 +146,13 @@ export default function DiscoverPage() {
     total: 0,
     totalPages: 1
   });
+  
+  // States for discover view sections
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [discoverLoading, setDiscoverLoading] = useState(true);
 
   const loadEvents = async (page = 1, search = '') => {
     try {
@@ -138,8 +179,46 @@ export default function DiscoverPage() {
   useEffect(() => {
     if (showAllEvents) {
       loadEvents(currentPage, searchTerm);
+    } else {
+      loadDiscoverData();
     }
   }, [currentPage, showAllEvents]);
+
+  const loadDiscoverData = async () => {
+    setDiscoverLoading(true);
+    try {
+      const [categoriesData, featuredData, upcomingData] = await Promise.all([
+        getEventCategories(),
+        getFeaturedEvents(4),
+        getUpcomingEvents(4)
+      ]);
+      
+      setCategories(categoriesData);
+      setFeaturedEvents(featuredData);
+      setUpcomingEvents(upcomingData);
+    } catch (err) {
+      console.error('Error loading discover data:', err);
+    } finally {
+      setDiscoverLoading(false);
+    }
+  };
+
+  const handleCategoryClick = async (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    try {
+      const categoryEvents = await getEventsByCategory(categoryId, 12);
+      setEvents(categoryEvents);
+      setShowAllEvents(true);
+      setSearchTerm('');
+      setCurrentPage(1);
+    } catch (err) {
+      console.error('Error loading category events:', err);
+    }
+  };
+
+  const navigateToEvent = (eventId: string) => {
+    router.push(`/events/${eventId}`);
+  };
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -171,145 +250,142 @@ export default function DiscoverPage() {
     });
   };
 
-  const SimpleEventCard = ({ event, onClick }: { event: any, onClick?: () => void }) => (
-    <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border cursor-pointer" onClick={onClick}>
-      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-        <img
-          src={event.image || event.imageUrl || "/api/placeholder/400/300"}
-          alt={event.title || event.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={(e) => {
-            e.currentTarget.src = "/api/placeholder/400/300";
-          }}
-        />
-      </div>
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-lg line-clamp-2 mb-2 group-hover:text-primary transition-colors">
-          {event.title || event.name}
-        </h3>
-        <p className="text-sm text-muted-foreground dark:text-gray-400 line-clamp-3 leading-relaxed">
-          {event.description}
-        </p>
-        {(event.date || event.startDate) && (
-          <div className="flex items-center mt-3 text-xs text-muted-foreground dark:text-gray-500">
-            <CalendarDays className="h-3 w-3 mr-1" />
-            {event.date || formatDate(event.startDate)}
-          </div>
-        )}
-        {(event.location) && (
-          <div className="flex items-center mt-1 text-xs text-muted-foreground dark:text-gray-500">
-            <MapPin className="h-3 w-3 mr-1" />
-            {event.location}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const CategoryCard = ({ category }: { category: any }) => {
-    const IconComponent = category.icon;
-    return (
-      <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border dark:border-neutral-600 bg-card cursor-pointer">
-        <CardContent className="p-6 text-center">
-          <div className={`w-16 h-16 ${category.color} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
-            <IconComponent className="h-8 w-8 text-white" />
-          </div>
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-            {category.name}
-          </h3>
-          <p className="text-sm text-muted-foreground dark:text-gray-400">
-            {category.count} events
-          </p>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-900 to-black text-white">
       <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground dark:text-white">Discover Events</h1>
-            <p className="text-muted-foreground dark:text-gray-400">Find exciting events happening around you</p>
-          </div>
-        </div>
-
         {!showAllEvents ? (
           <>
-            <section className="mb-12 sm:mb-16">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white">Browse by Category</h2>
-                <Button variant="ghost" className="text-primary hover:text-primary/80">
-                  View all <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+            {discoverLoading ? (
+              <div className="space-y-12">
+                {/* Category Loading */}
+                <section className="mb-12 sm:mb-16">
+                  <div className="flex items-center justify-between mb-6">
+                    <Skeleton className="h-8 w-48 bg-muted" />
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <Card key={i} className="overflow-hidden border-border bg-card">
+                        <CardContent className="p-6 text-center">
+                          <Skeleton className="w-16 h-16 rounded-full mx-auto mb-4 bg-muted" />
+                          <Skeleton className="h-4 w-20 mx-auto mb-2 bg-muted" />
+                          <Skeleton className="h-3 w-16 mx-auto bg-muted" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+                
+                {/* Featured Events Loading */}
+                <section className="mb-12 sm:mb-16">
+                  <Skeleton className="h-8 w-48 mb-6 bg-muted" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Card key={i} className="overflow-hidden border-border bg-card">
+                        <div className="aspect-[4/3]">
+                          <Skeleton className="w-full h-full bg-muted" />
+                        </div>
+                        <CardContent className="p-4">
+                          <Skeleton className="h-4 w-3/4 mb-2 bg-muted" />
+                          <Skeleton className="h-3 w-full mb-1 bg-muted" />
+                          <Skeleton className="h-3 w-2/3 bg-muted" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6">
-                {categories.map((category) => (
-                  <CategoryCard key={category.id} category={category} />
-                ))}
-              </div>
-            </section>
+            ) : (
+              <>
+                <section className="mb-12 sm:mb-16">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white">Browse by Category</h2>
+                  </div>
+                  {categories.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6">
+                      {categories.map((category) => (
+                        <CategoryCard key={category.id} category={category} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No categories available</p>
+                    </div>
+                  )}
+                </section>
 
-            <section className="mb-12 sm:mb-16">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                    <TrendingUp className="h-6 w-6 text-primary" />
-                    Trending Events
-                  </h2>
-                  <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
-                    Popular events happening this week
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  className="text-primary hover:text-primary/80"
-                  onClick={() => setShowAllEvents(true)}
-                >
-                  View all <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {trendingEvents.map((event) => (
-                  <SimpleEventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => console.log('Navigate to event details:', event.id)}
-                  />
-                ))}
-              </div>
-            </section>
+                <section className="mb-12 sm:mb-16">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white flex items-center gap-2">
+                        <TrendingUp className="h-6 w-6 text-primary" />
+                        Featured Events
+                      </h2>
+                      <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
+                        Most popular events happening soon
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="text-primary hover:text-primary/80"
+                      onClick={() => setShowAllEvents(true)}
+                    >
+                      View all <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                  {featuredEvents.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                      {featuredEvents.map((event) => (
+                        <SimpleEventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => navigateToEvent(event.id)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No featured events available</p>
+                    </div>
+                  )}
+                </section>
 
-            <section className="mb-12 sm:mb-16">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                    <Navigation className="h-6 w-6 text-primary" />
-                    Local Events
-                  </h2>
-                  <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
-                    Events happening near you
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  className="text-primary hover:text-primary/80"
-                  onClick={() => setShowAllEvents(true)}
-                >
-                  View all <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {localEvents.map((event) => (
-                  <SimpleEventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => console.log('Navigate to event details:', event.id)}
-                  />
-                ))}
-              </div>
-            </section>
+                <section className="mb-12 sm:mb-16">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white flex items-center gap-2">
+                        <Navigation className="h-6 w-6 text-primary" />
+                        Upcoming Events
+                      </h2>
+                      <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
+                        Events happening soon
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="text-primary hover:text-primary/80"
+                      onClick={() => setShowAllEvents(true)}
+                    >
+                      View all <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                  {upcomingEvents.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                      {upcomingEvents.map((event) => (
+                        <SimpleEventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => navigateToEvent(event.id)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No upcoming events available</p>
+                    </div>
+                  )}
+                </section>
+              </>
+            )}
 
             <section className="text-center bg-muted/50 rounded-2xl p-8 sm:p-12">
               <Zap className="h-12 w-12 text-primary mx-auto mb-4" />
@@ -327,9 +403,11 @@ export default function DiscoverPage() {
                   <Search className="h-4 w-4 mr-2" />
                   Browse All Events
                 </Button>
-                <Button variant="outline" className="sm:w-auto border-border dark:border-gray-700">
-                  Create Event
-                </Button>
+                <Link href={isAuthenticated ? "/create" : "/login"}>
+                  <Button variant="outline" className="sm:w-auto border-border dark:border-gray-700 w-full">
+                    Create Event
+                  </Button>
+                </Link>
               </div>
             </section>
           </>
@@ -428,7 +506,7 @@ export default function DiscoverPage() {
                   <SimpleEventCard
                     key={event.id}
                     event={event}
-                    onClick={() => console.log('Navigate to event details:', event.id)}
+                    onClick={() => navigateToEvent(event.id)}
                   />
                 ))}
               </div>

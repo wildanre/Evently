@@ -12,14 +12,14 @@ import React from "react";
 import { toast } from "sonner";
 import { GoogleOAuthButton } from "./auth/GoogleOAuthButton";
 import { NotificationMenu } from "./notification-menu";
+import { ProfileDialog } from "./profile-menu";
+import { SettingsDialog } from "./settings-menu";
 import { Avatar } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { ProfileDialog } from "./profile-menu";
-import { SettingsDialog } from "./settings-menu";
 
 export default function Navbar() {
   const [isLogin, setIsLogin] = React.useState(true);
@@ -81,7 +81,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
+    <nav className="shadow-sm w-full flex top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
       <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-5">

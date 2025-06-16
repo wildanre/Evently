@@ -31,16 +31,12 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Parse user data
         const userData = JSON.parse(decodeURIComponent(userParam));
         
-        // Store authentication data
         login(token, userData);
         setStatus('success');
         
-        // Redirect to events page after short delay
         setTimeout(() => {
-          // Use window.location for more reliable navigation after OAuth
           window.location.href = '/events';
         }, 1500);
         

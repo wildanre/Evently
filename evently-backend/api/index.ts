@@ -6,13 +6,13 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import passport from '../src/config/passport';
-import { prisma } from '../src/utils/prisma';
+import { swaggerSpec, swaggerUi } from '../src/config/swagger';
+import swaggerStaticRouter from '../src/swagger-static';
 
 // Import routes
 import authRoutes from '../src/routes/authRoutes';
 import eventRoutes from '../src/routes/eventRoutes';
 import userRoutes from '../src/routes/userRoutes';
-import swaggerStaticRouter from '../src/swagger-static';
 
 // Load environment variables
 dotenv.config();
@@ -42,10 +42,32 @@ app.use(helmet({
     },
   },
 }));
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+
+// CORS configuration for production and development
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL,
+      // Add your production frontend URLs here
+    ].filter(Boolean);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 app.use(limiter);
 
 // Session configuration
@@ -75,32 +97,13 @@ app.use('/api/events', eventRoutes);
 app.use('/api/users', userRoutes);
 
 // Health check endpoint
-app.get('/api/health', async (req, res) => {
-  try {
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
-    
-    res.status(200).json({
-      status: 'OK',
-      message: 'Evently Backend API is running',
-      timestamp: new Date().toISOString(),
-      documentation: `${req.protocol}://${req.get('host')}/api-docs`,
-      services: {
-        database: 'connected',
-        server: 'running'
-      }
-    });
-  } catch (error) {
-    res.status(503).json({
-      status: 'ERROR',
-      message: 'Service unavailable',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'disconnected',
-        server: 'running'
-      }
-    });
-  }
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Evently Backend API is running',
+    timestamp: new Date().toISOString(),
+    documentation: `${req.protocol}://${req.get('host')}/api-docs`
+  });
 });
 
 // 404 handler

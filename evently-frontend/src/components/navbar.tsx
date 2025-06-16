@@ -1,22 +1,25 @@
 "use client";
 
-import { Bell, Compass, LogIn, LogOut, Search, Ticket, User, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Avatar } from "./ui/avatar";
-import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { Separator } from "./ui/separator";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { Input } from "./ui/input";
-import { GoogleOAuthButton } from "./auth/GoogleOAuthButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginUser, registerUser } from "@/lib/auth";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { Bell, Compass, Loader2, LogIn, LogOut, Search, Settings, Ticket, User } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React from "react";
+import { toast } from "sonner";
+import { GoogleOAuthButton } from "./auth/GoogleOAuthButton";
+import { NotificationMenu } from "./notification-menu";
+import { ProfileDialog } from "./profile-menu";
+import { SettingsDialog } from "./settings-menu";
+import { Avatar } from "./ui/avatar";
+import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Separator } from "./ui/separator";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
 
 export default function Navbar() {
   const [isLogin, setIsLogin] = React.useState(true);
@@ -24,7 +27,7 @@ export default function Navbar() {
   const [loginForm, setLoginForm] = React.useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = React.useState({ name: '', email: '', password: '' });
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  
+
   const { user, isAuthenticated, login, logout, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
 
@@ -78,7 +81,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
+    <nav className="shadow-sm w-full flex top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
       <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-5">
@@ -128,11 +131,13 @@ export default function Navbar() {
               Create Event
             </Button>
             <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-            
+
             {isAuthenticated ? (
               <>
                 <NotificationMenu>
-                  <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                  <div className="relative">
+                    <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                  </div>
                 </NotificationMenu>
                 <UserMenu>
                   <Avatar className="cursor-pointer h-8 w-8">
@@ -205,9 +210,9 @@ export default function Navbar() {
                           </Button>
                           <span className="text-sm text-center text-gray-300">
                             Don't have an account?{' '}
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => setIsLogin(false)} 
+                              onClick={() => setIsLogin(false)}
                               className="text-white cursor-pointer hover:underline"
                             >
                               Register
@@ -268,9 +273,9 @@ export default function Navbar() {
                           </Button>
                           <span className="text-sm text-center text-gray-300">
                             Already have an account?{' '}
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => setIsLogin(true)} 
+                              onClick={() => setIsLogin(true)}
                               className="text-white cursor-pointer hover:underline"
                             >
                               Login
@@ -296,7 +301,9 @@ const UserMenu = ({
   children: React.ReactNode;
 }) => {
   const { user, logout } = useAuth();
-  
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = React.useState(false);
+
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
@@ -316,13 +323,13 @@ const UserMenu = ({
           <div className="flex items-center gap-3 w-full p-2 hover:bg-foreground/10 rounded-xl cursor-pointer">
             <Avatar className="cursor-pointer h-10 w-10">
               <AvatarFallback className="bg-primary text-primary-foreground">
-                      <Image
-                        src={user?.profileImageUrl || "/images/avatar1.jpg"}
-                        alt={user?.name || "User Avatar"}
-                        width={32}
-                        height={32}
-                        className="rounded-full w-full h-full"
-                      />
+                <Image
+                  src={user?.profileImageUrl || "/images/avatar1.jpg"}
+                  alt={user?.name || "User Avatar"}
+                  width={32}
+                  height={32}
+                  className="rounded-full w-full h-full"
+                />
               </AvatarFallback>
               {user?.profileImageUrl && (
                 <AvatarImage src={user.profileImageUrl} alt={user.name} />
@@ -335,18 +342,21 @@ const UserMenu = ({
           </div>
           <Separator />
           <div className="flex flex-col w-full">
-            <Link href="/profile" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+            <button
+              onClick={() => setIsProfileDialogOpen(true)}
+              className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left"
+            >
               <User className="h-4 w-4" />
               <span>View Profile</span>
-            </Link>
-            <Link href="/settings" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+            </button>
+            <button
+              onClick={() => setIsSettingsDialogOpen(true)}
+              className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left"
+            >
+              <Settings className="h-4 w-4" />
               <span>Settings</span>
-            </Link>
-            <button 
+            </button>
+            <button
               onClick={handleLogout}
               className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left"
             >
@@ -356,66 +366,19 @@ const UserMenu = ({
           </div>
         </div>
       </SheetContent>
+
+      <ProfileDialog
+        open={isProfileDialogOpen}
+        onOpenChange={setIsProfileDialogOpen}
+        user={user}
+      />
+
+      <SettingsDialog
+        open={isSettingsDialogOpen}
+        onOpenChange={setIsSettingsDialogOpen}
+        user={user}
+      />
     </Sheet>
   );
-}
+};
 
-const NotificationMenu = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
-      <SheetContent overlay={false} close={false} className="w-70 h-fit absolute right-5 top-16 border rounded-xl bg-background/80">
-        <SheetTitle className="hidden">
-          Notification Menu
-        </SheetTitle>
-
-        <div className="flex flex-col items-start">
-          <div className="flex items-center gap-3 w-full hover:bg-foreground/10 cursor-pointer rounded-t-xl">
-            <div className="flex items-center gap-3 w-full p-2">
-              <Avatar className="cursor-pointer h-10 w-10">
-                <AvatarFallback>CN</AvatarFallback>
-                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
-              </Avatar>
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-sm">Santosa <span className="font-medium">sent a message to</span><span>Base Batch Workshop - Yogyakarta, Indonesia</span></span>
-                <span className="text-xs font-semibold">Updated <span className="text-gray-400">May 30</span></span>
-              </div>
-            </div>
-          </div>
-          <Separator />
-          <div className="flex items-center gap-3 w-full hover:bg-foreground/10 cursor-pointer">
-            <div className="flex items-center gap-3 w-full p-2">
-              <Avatar className="cursor-pointer h-10 w-10">
-                <AvatarFallback>CN</AvatarFallback>
-                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
-              </Avatar>
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-sm">Santosa <span className="font-medium">sent a message to</span><span>Base Batch Workshop - Yogyakarta, Indonesia</span></span>
-                <span className="text-xs font-semibold">Updated <span className="text-gray-400">May 30</span></span>
-              </div>
-            </div>
-          </div>
-          <Separator />
-          <div className="flex items-center gap-3 w-full hover:bg-foreground/10 cursor-pointer rounded-b-xl">
-            <div className="flex items-center gap-3 w-full p-2">
-              <Avatar className="cursor-pointer h-10 w-10">
-                <AvatarFallback>CN</AvatarFallback>
-                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
-              </Avatar>
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-sm">Santosa <span className="font-medium">sent a message to</span><span>Base Batch Workshop - Yogyakarta, Indonesia</span></span>
-                <span className="text-xs font-semibold">Updated <span className="text-gray-400">May 30</span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}

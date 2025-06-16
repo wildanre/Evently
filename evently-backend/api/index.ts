@@ -12,6 +12,7 @@ import swaggerStaticRouter from '../src/swagger-static';
 import authRoutes from '../src/routes/authRoutes';
 import eventRoutes from '../src/routes/eventRoutes';
 import userRoutes from '../src/routes/userRoutes';
+import notificationRoutes from '../src/routes/notificationRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -135,6 +136,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

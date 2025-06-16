@@ -1,34 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import {
+  EventDateTimePicker
+} from "@/app/(client)/create/_components/date-time";
+import VisibilitySelect from "@/app/(client)/create/_components/visibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import {
   Calendar,
   ChevronDown,
   Edit,
-  Eye,
-  Globe,
   MapPin,
   PenLine,
   Ticket,
   Upload,
-  Users,
+  Users
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import VisibilitySelect from "@/app/(client)/create/_components/visibility";
-import {
-  EventDateTimePicker,
-  timezones,
-} from "@/app/(client)/create/_components/date-time";
+import { useState } from "react";
 
 export default function EventCreationForm() {
   const [eventName, setEventName] = useState("");

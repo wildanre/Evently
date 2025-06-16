@@ -351,6 +351,55 @@ router.post('/', [
 /**
  * @swagger
  * /api/notifications/{id}:
+ *   put:
+ *     summary: Update a notification (Admin only)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Notification title
+ *                 example: "Updated Event Information"
+ *               message:
+ *                 type: string
+ *                 description: Notification message
+ *                 example: "The event details have been updated. Please check the latest information."
+ *               type:
+ *                 type: string
+ *                 enum: [EVENT_CREATED, EVENT_UPDATED, EVENT_CANCELLED, EVENT_REMINDER, REGISTRATION_CONFIRMED, REGISTRATION_APPROVED, REGISTRATION_REJECTED, FEEDBACK_REQUEST, GENERAL]
+ *                 description: Notification type
+ *                 example: "EVENT_UPDATED"
+ *     responses:
+ *       200:
+ *         description: Notification updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Notification'
+ *       400:
+ *         description: Bad request - validation errors
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Notification not found
+ *       500:
+ *         description: Internal server error
  *   delete:
  *     summary: Delete a notification
  *     tags: [Notifications]
@@ -371,6 +420,68 @@ router.post('/', [
  *       403:
  *         description: Access denied
  */
+router.put('/:id', [
+  body('title').optional().trim().isLength({ min: 1 }).withMessage('Title must not be empty'),
+  body('message').optional().trim().isLength({ min: 1 }).withMessage('Message must not be empty'),
+  body('type').optional().isIn(Object.values(NotificationType)).withMessage('Invalid notification type')
+], authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const { title, message, type } = req.body;
+
+    // Check if notification exists
+    const notification = await prisma.notifications.findUnique({
+      where: { id }
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    // Check if user owns the notification (users can only update their own notifications)
+    if (notification.userId !== req.user!.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Build update data - only include fields that are provided
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (message !== undefined) updateData.message = message;
+    if (type !== undefined) updateData.type = type;
+
+    // If no fields to update, return error
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const updatedNotification = await prisma.notifications.update({
+      where: { id },
+      data: updateData,
+      include: {
+        events: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            location: true
+          }
+        }
+      }
+    });
+
+    res.json(updatedNotification);
+  } catch (error) {
+    console.error('Update notification error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;

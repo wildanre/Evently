@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -31,16 +31,12 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Parse user data
         const userData = JSON.parse(decodeURIComponent(userParam));
         
-        // Store authentication data
         login(token, userData);
         setStatus('success');
         
-        // Redirect to events page after short delay
         setTimeout(() => {
-          // Use window.location for more reliable navigation after OAuth
           window.location.href = '/events';
         }, 1500);
         

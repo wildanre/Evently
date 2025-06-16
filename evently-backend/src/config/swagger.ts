@@ -188,7 +188,7 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
+          description: 'JWT Authorization header using the Bearer scheme. The token is obtained from the login endpoint (/auth/login) upon successful authentication. Example: "Authorization: Bearer {token}"'
         }
       }
     },

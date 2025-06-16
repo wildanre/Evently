@@ -63,6 +63,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
+      'https://evently-backend-seven.vercel.app',
       process.env.FRONTEND_URL,
       // Add your production frontend URLs here
     ].filter(Boolean);

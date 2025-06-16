@@ -61,7 +61,9 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <Button variant="ghost" className="font-bold px-0 text-gray-300">Create Event</Button>
             <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-            <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+            <NotificationMenu>
+              <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+            </NotificationMenu>
             <UserMenu>
               <Avatar className="cursor-pointer">
                 <AvatarFallback>CN</AvatarFallback>
@@ -86,6 +88,10 @@ const UserMenu = ({
         {children}
       </SheetTrigger>
       <SheetContent overlay={false} close={false} className="w-70 h-fit absolute right-5 top-16 border rounded-xl bg-background/80">
+        <SheetTitle className="hidden">
+          User Menu
+        </SheetTitle>
+
         <div className="flex flex-col items-start p-1 gap-1">
           <div className="flex items-center gap-3 w-full p-2 hover:bg-foreground/10 rounded-xl cursor-pointer">
             <Avatar className="cursor-pointer h-10 w-10">
@@ -107,6 +113,66 @@ const UserMenu = ({
             </Link>
             <div className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
               <span>Logout</span>
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+const NotificationMenu = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        {children}
+      </SheetTrigger>
+      <SheetContent overlay={false} close={false} className="w-70 h-fit absolute right-5 top-16 border rounded-xl bg-background/80">
+        <SheetTitle className="hidden">
+          Notification Menu
+        </SheetTitle>
+
+        <div className="flex flex-col items-start">
+          <div className="flex items-center gap-3 w-full hover:bg-foreground/10 cursor-pointer rounded-t-xl">
+            <div className="flex items-center gap-3 w-full p-2">
+              <Avatar className="cursor-pointer h-10 w-10">
+                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+              </Avatar>
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-sm">Santosa <span className="font-medium">sent a message to</span><span>Base Batch Workshop - Yogyakarta, Indonesia</span></span>
+                <span className="text-xs font-semibold">Updated <span className="text-gray-400">May 30</span></span>
+              </div>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-center gap-3 w-full hover:bg-foreground/10 cursor-pointer">
+            <div className="flex items-center gap-3 w-full p-2">
+              <Avatar className="cursor-pointer h-10 w-10">
+                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+              </Avatar>
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-sm">Santosa <span className="font-medium">sent a message to</span><span>Base Batch Workshop - Yogyakarta, Indonesia</span></span>
+                <span className="text-xs font-semibold">Updated <span className="text-gray-400">May 30</span></span>
+              </div>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-center gap-3 w-full hover:bg-foreground/10 cursor-pointer rounded-b-xl">
+            <div className="flex items-center gap-3 w-full p-2">
+              <Avatar className="cursor-pointer h-10 w-10">
+                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+              </Avatar>
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-sm">Santosa <span className="font-medium">sent a message to</span><span>Base Batch Workshop - Yogyakarta, Indonesia</span></span>
+                <span className="text-xs font-semibold">Updated <span className="text-gray-400">May 30</span></span>
+              </div>
             </div>
           </div>
         </div>

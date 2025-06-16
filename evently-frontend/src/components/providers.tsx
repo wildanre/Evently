@@ -1,8 +1,8 @@
 "use client";
 
-import { Toaster } from "@/components/ui/sonner"
-import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "next-themes";
 
 export default function Providers({
   children,

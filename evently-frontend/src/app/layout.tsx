@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Manrope } from "next/font/google";
-import "./globals.css";
-import Providers from "@/components/providers";
 import DefaultLayout from "@/components/layout/default";
+import Providers from "@/components/providers";
+import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
+import "./globals.css";
 
 const manrope = Manrope({
   variable: "--font-manrope",

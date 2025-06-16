@@ -11,7 +11,7 @@ export interface User {
 
 // Auth types
 export interface AuthRequest extends Request {
-  user?: Express.User;
+  user?: User;
 }
 
 // Event types

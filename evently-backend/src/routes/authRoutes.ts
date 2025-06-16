@@ -232,9 +232,12 @@ router.post('/login', [
  *       302:
  *         description: Redirects to Google OAuth
  */
-router.get('/google', 
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get('/google', (req, res, next) => {
+  console.log('Initiating Google OAuth login');
+  passport.authenticate('google', { 
+    scope: ['profile', 'email']
+  })(req, res, next);
+});
 
 /**
  * @swagger
@@ -247,10 +250,24 @@ router.get('/google',
  *         description: Redirects to frontend with token
  */
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed` }),
+  (req, res, next) => {
+    console.log('Google OAuth callback received');
+    passport.authenticate('google', { 
+      failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed`,
+      failureMessage: true
+    })(req, res, next);
+  },
   async (req: express.Request, res: express.Response) => {
     try {
+      console.log('Google OAuth callback - processing user');
       const user = req.user as any;
+      
+      if (!user) {
+        console.error('No user found in Google OAuth callback');
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user`);
+      }
+
+      console.log('Google OAuth user:', { id: user.id, email: user.email, name: user.name });
       
       // Generate JWT token
       const token = jwt.sign(
@@ -259,13 +276,18 @@ router.get('/google/callback',
         { expiresIn: '7d' }
       );
 
+      console.log('JWT token generated for Google OAuth user');
+
       // Redirect to frontend with token
-      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+      const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
         id: user.id,
         name: user.name,
         email: user.email,
         profileImageUrl: user.profileImageUrl
-      }))}`);
+      }))}`;
+      
+      console.log('Redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
     } catch (error) {
       console.error('Google callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_failed`);
@@ -277,6 +299,24 @@ router.get('/google/callback',
 router.get('/google/url', (req: express.Request, res: express.Response) => {
   const googleAuthUrl = `${req.protocol}://${req.get('host')}/api/auth/google`;
   res.json({ url: googleAuthUrl });
+});
+
+// Test OAuth configuration
+router.get('/google/test', (req: express.Request, res: express.Response) => {
+  const config = {
+    clientID: process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Missing',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || '✗ Missing',
+    frontendURL: process.env.FRONTEND_URL || '✗ Missing',
+    jwtSecret: process.env.JWT_SECRET ? '✓ Set' : '✗ Missing',
+    sessionSecret: process.env.SESSION_SECRET ? '✓ Set' : '✗ Missing'
+  };
+  
+  res.json({
+    message: 'Google OAuth Configuration Check',
+    config,
+    status: Object.values(config).every(v => v.includes('✓')) ? 'Ready' : 'Issues Found'
+  });
 });
 
 export default router;

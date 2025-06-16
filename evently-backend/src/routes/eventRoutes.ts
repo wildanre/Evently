@@ -81,19 +81,19 @@ router.get('/', [
     }
 
     const [events, total] = await Promise.all([
-      prisma.event.findMany({
+      prisma.events.findMany({
         where,
         skip,
         take: limit,
         orderBy: { startDate: 'asc' },
         include: {
-          organizer: {
+          users: {
             select: { id: true, name: true, email: true }
           },
-          _count: { select: { attendees: true } }
+          _count: { select: { event_participants_event_participants_eventIdToevents: true } }
         }
       }),
-      prisma.event.count({ where })
+      prisma.events.count({ where })
     ]);
 
     res.json({
@@ -134,29 +134,22 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
-    const event = await prisma.event.findUnique({
+    const event = await prisma.events.findUnique({
       where: { id },
       include: {
-        organizer: {
+        users: {
           select: { id: true, name: true, email: true, profileImageUrl: true }
         },
-        attendees: {
+        event_participants_event_participants_eventIdToevents: {
           include: {
-            user: {
+            users: {
               select: { id: true, name: true, profileImageUrl: true }
             }
           }
         },
-        speakers: {
+        event_feedback: {
           include: {
-            user: {
-              select: { id: true, name: true, bio: true, profileImageUrl: true }
-            }
-          }
-        },
-        feedback: {
-          include: {
-            user: {
+            users: {
               select: { id: true, name: true }
             }
           },
@@ -403,7 +396,7 @@ router.post('/', [
       return res.status(400).json({ error: 'Start date must be before end date' });
     }
 
-    const event = await prisma.event.create({
+    const event = await prisma.events.create({
       data: {
         name,
         description,
@@ -418,7 +411,7 @@ router.post('/', [
         organizerId: req.user!.id
       },
       include: {
-        organizer: {
+        users: {
           select: { id: true, name: true, email: true }
         }
       }
@@ -453,7 +446,7 @@ router.put('/:id', [
     const updates = req.body;
 
     // Check if event exists and user is organizer
-    const existingEvent = await prisma.event.findUnique({
+    const existingEvent = await prisma.events.findUnique({
       where: { id }
     });
 
@@ -473,7 +466,7 @@ router.put('/:id', [
       return res.status(400).json({ error: 'Start date must be before end date' });
     }
 
-    const updatedEvent = await prisma.event.update({
+    const updatedEvent = await prisma.events.update({
       where: { id },
       data: {
         ...updates,
@@ -481,7 +474,7 @@ router.put('/:id', [
         endDate: updates.endDate ? new Date(updates.endDate) : undefined
       },
       include: {
-        organizer: {
+        users: {
           select: { id: true, name: true, email: true }
         }
       }
@@ -499,7 +492,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
-    const event = await prisma.event.findUnique({
+    const event = await prisma.events.findUnique({
       where: { id }
     });
 
@@ -511,7 +504,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(403).json({ error: 'Only event organizer can delete this event' });
     }
 
-    await prisma.event.delete({
+    await prisma.events.delete({
       where: { id }
     });
 
@@ -527,9 +520,9 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
   try {
     const { id } = req.params;
 
-    const event = await prisma.event.findUnique({
+    const event = await prisma.events.findUnique({
       where: { id },
-      include: { _count: { select: { attendees: true } } }
+      include: { _count: { select: { event_participants_event_participants_eventIdToevents: true } } }
     });
 
     if (!event) {
@@ -537,12 +530,12 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
     }
 
     // Check if event is full
-    if (event.capacity && event._count.attendees >= event.capacity) {
+    if (event.capacity && event._count.event_participants_event_participants_eventIdToevents >= event.capacity) {
       return res.status(400).json({ error: 'Event is full' });
     }
 
     // Check if user is already registered
-    const existingRegistration = await prisma.eventParticipant.findUnique({
+    const existingRegistration = await prisma.event_participants.findUnique({
       where: {
         eventId_userId: {
           eventId: id,
@@ -556,7 +549,7 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
     }
 
     // Register user
-    await prisma.eventParticipant.create({
+    await prisma.event_participants.create({
       data: {
         eventId: id,
         userId: req.user!.id,
@@ -565,7 +558,7 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
     });
 
     // Update attendee count
-    await prisma.event.update({
+    await prisma.events.update({
       where: { id },
       data: { attendeeCount: { increment: 1 } }
     });
@@ -582,7 +575,7 @@ router.delete('/:id/register', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const registration = await prisma.eventParticipant.findUnique({
+    const registration = await prisma.event_participants.findUnique({
       where: {
         eventId_userId: {
           eventId: id,
@@ -595,7 +588,7 @@ router.delete('/:id/register', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Registration not found' });
     }
 
-    await prisma.eventParticipant.delete({
+    await prisma.event_participants.delete({
       where: {
         eventId_userId: {
           eventId: id,
@@ -605,7 +598,7 @@ router.delete('/:id/register', authenticateToken, async (req, res) => {
     });
 
     // Update attendee count
-    await prisma.event.update({
+    await prisma.events.update({
       where: { id },
       data: { attendeeCount: { decrement: 1 } }
     });

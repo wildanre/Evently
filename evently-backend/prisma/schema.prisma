@@ -1,17 +1,87 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
+
+model event_feedback {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    events   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model event_participants {
+  id                                               String    @id @default(cuid())
+  role                                             EventRole
+  status                                           String    @default("confirmed")
+  eventId                                          String
+  userId                                           String
+  speakerEventId                                   String?
+  managerEventId                                   String?
+  registeredAt                                     DateTime  @default(now())
+  updatedAt                                        DateTime  @updatedAt
+  events_event_participants_eventIdToevents        events    @relation("event_participants_eventIdToevents", fields: [eventId], references: [id], onDelete: Cascade)
+  events_event_participants_managerEventIdToevents events?   @relation("event_participants_managerEventIdToevents", fields: [managerEventId], references: [id])
+  events_event_participants_speakerEventIdToevents events?   @relation("event_participants_speakerEventIdToevents", fields: [speakerEventId], references: [id])
+  users                                            users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model events {
+  id                                                           String               @id @default(cuid())
+  name                                                         String
+  description                                                  String?
+  location                                                     String?
+  visibility                                                   Boolean              @default(true)
+  tags                                                         String[]             @default([])
+  imageUrl                                                     String?
+  status                                                       EventStatus          @default(PUBLISHED)
+  requireApproval                                              Boolean              @default(false)
+  capacity                                                     Int?
+  attendeeCount                                                Int                  @default(0)
+  startDate                                                    DateTime
+  endDate                                                      DateTime
+  registrationStartDate                                        DateTime             @default(now())
+  registrationEndDate                                          DateTime?
+  createdAt                                                    DateTime             @default(now())
+  updatedAt                                                    DateTime             @updatedAt
+  organizerId                                                  String
+  feedbackCount                                                Int                  @default(0)
+  feedbackAverageRating                                        Float                @default(0.0)
+  event_feedback                                               event_feedback[]
+  event_participants_event_participants_eventIdToevents        event_participants[] @relation("event_participants_eventIdToevents")
+  event_participants_event_participants_managerEventIdToevents event_participants[] @relation("event_participants_managerEventIdToevents")
+  event_participants_event_participants_speakerEventIdToevents event_participants[] @relation("event_participants_speakerEventIdToevents")
+  users                                                        users                @relation(fields: [organizerId], references: [id])
+}
+
+model users {
+  id                 String               @id @default(cuid())
+  name               String
+  email              String               @unique
+  password           String?
+  profileImageUrl    String?
+  bio                String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  event_feedback     event_feedback[]
+  event_participants event_participants[]
+  events             events[]
+}
+
 enum EventRole {
   ATTENDEE
   SPEAKER
@@ -30,110 +100,4 @@ enum RegistrationStatus {
   OPEN
   CLOSED
   WAITLIST
-}
-
-model Event {
-  id                    String   @id @default(cuid())
-  name                  String
-  description           String?
-  location              String?
-  visibility            Boolean  @default(true)
-  tags                  String[] @default([])
-  imageUrl              String?
-  status                EventStatus @default(PUBLISHED)
-  requireApproval       Boolean  @default(false)
-  capacity              Int?     
-  attendeeCount         Int      @default(0)
-  
-  startDate             DateTime
-  endDate               DateTime
-  registrationStartDate DateTime @default(now())
-  registrationEndDate   DateTime?
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  organizer             User     @relation("OrganizerEvents", fields: [organizerId], references: [id])
-  organizerId           String
-  
-  attendees             EventParticipant[] @relation("EventAttendees")
-  speakers              EventParticipant[] @relation("EventSpeakers") 
-  managers              EventParticipant[] @relation("EventManagers")
-  
-  feedback              EventFeedback[]
-  feedbackCount         Int      @default(0)
-  feedbackAverageRating Float    @default(0.0)
-  
-  @@map("events")
-}
-
-model User {
-  id                String   @id @default(cuid())
-  name              String
-  email             String   @unique
-  password          String?
-  profileImageUrl   String?
-  bio               String?
-  
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  
-  eventsOrganized   Event[]  @relation("OrganizerEvents")
-  
-  
-  eventParticipation EventParticipant[]
-  
-  
-  feedbackGiven     EventFeedback[]
-  
-  @@map("users")
-}
-
-model EventParticipant {
-  id        String    @id @default(cuid())
-  role      EventRole
-  status    String    @default("confirmed") 
-  
-  
-  event     Event     @relation("EventAttendees", fields: [eventId], references: [id], onDelete: Cascade)
-  eventId   String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  
-  
-  speakerEvent Event? @relation("EventSpeakers", fields: [speakerEventId], references: [id])
-  speakerEventId String?
-  
-  managerEvent Event? @relation("EventManagers", fields: [managerEventId], references: [id])
-  managerEventId String?
-  
-  
-  registeredAt DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  
-  @@unique([eventId, userId])
-  @@map("event_participants")
-}
-
-model EventFeedback {
-  id        String   @id @default(cuid())
-  rating    Int      
-  comment   String?
-  
-  
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId   String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  
-  @@unique([eventId, userId])
-  @@map("event_feedback")
 }

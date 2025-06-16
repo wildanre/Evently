@@ -38,7 +38,7 @@ passport.use(new GoogleStrategy({
     console.log('Google OAuth profile:', { email, name, profileImageUrl });
 
     // Check if user already exists
-    let user = await prisma.user.findUnique({
+    let user = await prisma.users.findUnique({
       where: { email }
     });
 
@@ -46,7 +46,7 @@ passport.use(new GoogleStrategy({
       console.log('Existing user found:', user.id);
       // Update profile image if it's new
       if (profileImageUrl && user.profileImageUrl !== profileImageUrl) {
-        user = await prisma.user.update({
+        user = await prisma.users.update({
           where: { id: user.id },
           data: { profileImageUrl }
         });
@@ -56,7 +56,7 @@ passport.use(new GoogleStrategy({
 
     // Create new user
     console.log('Creating new user for email:', email);
-    user = await prisma.user.create({
+    user = await prisma.users.create({
       data: {
         name,
         email,
@@ -82,7 +82,7 @@ passport.serializeUser((user: any, done) => {
 // Deserialize user from session
 passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id },
       select: {
         id: true,

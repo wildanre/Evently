@@ -73,7 +73,7 @@ router.post('/register', [
     const { name, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email }
     });
 
@@ -86,7 +86,7 @@ router.post('/register', [
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create user
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         name,
         email,
@@ -186,7 +186,7 @@ router.post('/login', [
     const { email, password } = req.body;
 
     // Find user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email }
     });
 
@@ -297,7 +297,9 @@ router.get('/google/callback',
 
 // Get OAuth login URL
 router.get('/google/url', (req: express.Request, res: express.Response) => {
-  const googleAuthUrl = `${req.protocol}://${req.get('host')}/api/auth/google`;
+  // Force HTTPS in production (Vercel)
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : req.protocol;
+  const googleAuthUrl = `${protocol}://${req.get('host')}/api/auth/google`;
   res.json({ url: googleAuthUrl });
 });
 

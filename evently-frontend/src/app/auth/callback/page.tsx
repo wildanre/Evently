@@ -40,8 +40,9 @@ export default function AuthCallback() {
         
         // Redirect to events page after short delay
         setTimeout(() => {
-          router.push('/events');
-        }, 1000);
+          // Use window.location for more reliable navigation after OAuth
+          window.location.href = '/events';
+        }, 1500);
         
       } catch (error) {
         console.error('Auth callback error:', error);

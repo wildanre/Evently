@@ -23,7 +23,7 @@ const router: express.Router = express.Router();
 // Get user profile
 router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: req.user!.id },
       select: {
         id: true,
@@ -34,8 +34,8 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response
         createdAt: true,
         _count: {
           select: {
-            eventsOrganized: true,
-            eventParticipation: true
+            events: true,
+            event_participants: true
           }
         }
       }
@@ -119,7 +119,7 @@ router.put(
 
             const { name, bio, profileImageUrl } = req.body as UpdateUserData;
 
-            const updatedUser = await prisma.user.update({
+            const updatedUser = await prisma.users.update({
                 where: { id: req.user!.id },
                 data: {
                     ...(name && { name }),
@@ -159,11 +159,11 @@ router.put(
 // Get user's organized events
 router.get('/organized-events', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const events = await prisma.event.findMany({
+    const events = await prisma.events.findMany({
       where: { organizerId: req.user!.id },
       orderBy: { createdAt: 'desc' },
       include: {
-        _count: { select: { attendees: true } }
+        _count: { select: { event_participants_event_participants_eventIdToevents: true } }
       }
     });
 
@@ -189,15 +189,15 @@ router.get('/organized-events', authenticateToken, async (req: AuthRequest, res)
 // Get user's registered events
 router.get('/registered-events', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const registrations = await prisma.eventParticipant.findMany({
+    const registrations = await prisma.event_participants.findMany({
       where: { userId: req.user!.id },
       include: {
-        event: {
+        events_event_participants_eventIdToevents: {
           include: {
-            organizer: {
+            users: {
               select: { id: true, name: true, email: true }
             },
-            _count: { select: { attendees: true } }
+            _count: { select: { event_participants_event_participants_eventIdToevents: true } }
           }
         }
       },
@@ -205,7 +205,7 @@ router.get('/registered-events', authenticateToken, async (req: AuthRequest, res
     });
 
     const events = registrations.map((reg: typeof registrations[number]) => ({
-      ...reg.event,
+      ...reg.events_event_participants_eventIdToevents,
       registrationRole: reg.role,
       registrationStatus: reg.status,
       registeredAt: reg.registeredAt

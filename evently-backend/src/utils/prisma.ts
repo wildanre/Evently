@@ -7,12 +7,12 @@ const globalForPrisma = globalThis as unknown as {
 // Create a new PrismaClient instance with connection handling options
 export const prisma = globalForPrisma.prisma ?? 
   new PrismaClient({
-    log: ['error', 'warn'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
       },
-    }
+    },
   });
 
 // Save the client instance in development to avoid multiple instances

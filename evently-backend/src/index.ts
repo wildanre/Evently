@@ -7,6 +7,7 @@ import session from 'express-session';
 import passport from './config/passport';
 import { swaggerSpec, swaggerUi } from './config/swagger';
 import swaggerStaticRouter from './swagger-static';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -20,11 +21,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Rate limiting
+// Rate limiting for Vercel
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Middleware with relaxed CSP for Swagger UI
@@ -36,6 +39,11 @@ app.use('/swagger.json', helmet({
   contentSecurityPolicy: false, // Disable CSP for Swagger JSON route
 }));
 
+// Disable CSP for API endpoints when accessed from Swagger UI
+app.use('/api', helmet({
+  contentSecurityPolicy: false,
+}));
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -43,7 +51,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
       imgSrc: ["'self'", "data:", "https:", "https://unpkg.com"],
-      connectSrc: ["'self'", "https:"],
+      connectSrc: ["'self'", "https:", "*"], // Allow all connections for API testing
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://unpkg.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -57,25 +65,43 @@ app.use(helmet({
 // CORS configuration for production and development
 const corsOptions = {
   origin: function (origin: any, callback: any) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Always allow requests without origin (Swagger UI, Postman, etc.)
     if (!origin) return callback(null, true);
     
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
       process.env.FRONTEND_URL,
-      // Add your production frontend URLs here
+      // Allow all Vercel domains for API documentation
+      /\.vercel\.app$/,
     ].filter(Boolean);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return origin === allowedOrigin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+    
+    // Always allow for API testing and development
+    callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Accept', 
+    'Origin', 
+    'X-Requested-With',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200, // For legacy browser support
+  preflightContinue: false,
 };
 
 app.use(cors(corsOptions));
@@ -133,26 +159,33 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Evently Backend server is running on port ${PORT}`);
-  console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-});
-
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  server.close(async () => {
-    console.log('HTTP server closed');
-    process.exit(0);
+// For local development, start the server
+if (process.env.NODE_ENV !== 'production') {
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Evently Backend server is running on port ${PORT}`);
+    console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
   });
-});
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(async () => {
-    console.log('HTTP server closed');
-    process.exit(0);
+  // Handle graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(async () => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
   });
-});
+
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(async () => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+  });
+}
+
+// Export for Vercel
+export default (req: VercelRequest, res: VercelResponse) => {
+  return app(req as any, res as any);
+};

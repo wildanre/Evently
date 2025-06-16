@@ -22,7 +22,9 @@ console.log('- Callback URL:', process.env.GOOGLE_CALLBACK_URL || 'Missing');
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID!,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL!
+  callbackURL: process.env.GOOGLE_CALLBACK_URL!,
+  scope: ['profile', 'email'],
+  passReqToCallback: false
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     // Validate profile data

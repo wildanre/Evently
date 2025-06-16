@@ -251,8 +251,13 @@ router.post('/login', [
  */
 router.get('/google', (req, res, next) => {
   console.log('Initiating Google OAuth login');
+  console.log('Request origin:', req.get('origin'));
+  console.log('Request referer:', req.get('referer'));
+  
   passport.authenticate('google', { 
-    scope: ['profile', 'email']
+    scope: ['profile', 'email'],
+    accessType: 'offline',
+    prompt: 'consent'
   })(req, res, next);
 });
 

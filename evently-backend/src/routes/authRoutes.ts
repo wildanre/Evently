@@ -72,8 +72,14 @@ router.post('/register', [
 
     const { name, email, password } = req.body;
 
+    // Check if JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email }
     });
 
@@ -86,7 +92,7 @@ router.post('/register', [
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create user
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         name,
         email,
@@ -103,7 +109,7 @@ router.post('/register', [
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -114,6 +120,17 @@ router.post('/register', [
     });
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('connect')) {
+        return res.status(500).json({ error: 'Database connection error' });
+      }
+      if (error.message.includes('Unique constraint')) {
+        return res.status(400).json({ error: 'User already exists with this email' });
+      }
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -186,7 +203,7 @@ router.post('/login', [
     const { email, password } = req.body;
 
     // Find user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email }
     });
 
@@ -232,9 +249,12 @@ router.post('/login', [
  *       302:
  *         description: Redirects to Google OAuth
  */
-router.get('/google', 
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get('/google', (req, res, next) => {
+  console.log('Initiating Google OAuth login');
+  passport.authenticate('google', { 
+    scope: ['profile', 'email']
+  })(req, res, next);
+});
 
 /**
  * @swagger
@@ -247,10 +267,24 @@ router.get('/google',
  *         description: Redirects to frontend with token
  */
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed` }),
+  (req, res, next) => {
+    console.log('Google OAuth callback received');
+    passport.authenticate('google', { 
+      failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed`,
+      failureMessage: true
+    })(req, res, next);
+  },
   async (req: express.Request, res: express.Response) => {
     try {
+      console.log('Google OAuth callback - processing user');
       const user = req.user as any;
+      
+      if (!user) {
+        console.error('No user found in Google OAuth callback');
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user`);
+      }
+
+      console.log('Google OAuth user:', { id: user.id, email: user.email, name: user.name });
       
       // Generate JWT token
       const token = jwt.sign(
@@ -259,13 +293,18 @@ router.get('/google/callback',
         { expiresIn: '7d' }
       );
 
+      console.log('JWT token generated for Google OAuth user');
+
       // Redirect to frontend with token
-      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+      const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
         id: user.id,
         name: user.name,
         email: user.email,
         profileImageUrl: user.profileImageUrl
-      }))}`);
+      }))}`;
+      
+      console.log('Redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
     } catch (error) {
       console.error('Google callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_failed`);
@@ -275,8 +314,71 @@ router.get('/google/callback',
 
 // Get OAuth login URL
 router.get('/google/url', (req: express.Request, res: express.Response) => {
-  const googleAuthUrl = `${req.protocol}://${req.get('host')}/api/auth/google`;
+  // Force HTTPS in production (Vercel)
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : req.protocol;
+  const googleAuthUrl = `${protocol}://${req.get('host')}/api/auth/google`;
   res.json({ url: googleAuthUrl });
+});
+
+// Test OAuth configuration
+router.get('/google/test', (req: express.Request, res: express.Response) => {
+  const config = {
+    clientID: process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Missing',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || '✗ Missing',
+    frontendURL: process.env.FRONTEND_URL || '✗ Missing',
+    jwtSecret: process.env.JWT_SECRET ? '✓ Set' : '✗ Missing',
+    sessionSecret: process.env.SESSION_SECRET ? '✓ Set' : '✗ Missing'
+  };
+  
+  res.json({
+    message: 'Google OAuth Configuration Check',
+    config,
+    status: Object.values(config).every(v => v.includes('✓')) ? 'Ready' : 'Issues Found'
+  });
+});
+
+/**
+ * @swagger
+ * /api/auth/health:
+ *   get:
+ *     summary: Health check for authentication service
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Service health status
+ */
+router.get('/health', async (req: express.Request, res: express.Response) => {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`;
+    
+    const config = {
+      database: '✓ Connected',
+      jwtSecret: process.env.JWT_SECRET ? '✓ Set' : '✗ Missing',
+      nodeEnv: process.env.NODE_ENV || 'development'
+    };
+    
+    res.json({
+      message: 'Authentication service health check',
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      config
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      message: 'Authentication service health check',
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error',
+      config: {
+        database: '✗ Connection failed',
+        jwtSecret: process.env.JWT_SECRET ? '✓ Set' : '✗ Missing',
+        nodeEnv: process.env.NODE_ENV || 'development'
+      }
+    });
+  }
 });
 
 export default router;

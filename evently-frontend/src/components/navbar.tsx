@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Compass, Github, LogIn, Search, Ticket, User } from "lucide-react";
+import { Bell, Compass, LogIn, LogOut, Search, Ticket, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Avatar } from "./ui/avatar";
@@ -8,16 +8,74 @@ import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { Card } from "./ui/card";
+import { Input } from "./ui/input";
+import { GoogleOAuthButton } from "./auth/GoogleOAuthButton";
+import { useAuth } from "@/contexts/AuthContext";
+import { loginUser, registerUser } from "@/lib/auth";
+import { toast } from "sonner";
 import React from "react";
 
 export default function Navbar() {
-  const [isLogin, setIsLogin] = React.useState(false);
-
+  const [isLogin, setIsLogin] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [loginForm, setLoginForm] = React.useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = React.useState({ name: '', email: '', password: '' });
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  
+  const { user, isAuthenticated, login, logout, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const response = await loginUser(loginForm);
+      login(response.token, response.user);
+      toast.success('Login successful!');
+      setIsDialogOpen(false);
+      setLoginForm({ email: '', password: '' });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const response = await registerUser(registerForm);
+      login(response.token, response.user);
+      toast.success('Registration successful!');
+      setIsDialogOpen(false);
+      setRegisterForm({ name: '', email: '', password: '' });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
+        <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-5">
+              <div className="h-6 w-6 bg-gray-300 rounded-full animate-pulse" />
+            </div>
+            <div className="flex items-center gap-4">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="shadow-sm w-full sticky top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
@@ -70,77 +128,161 @@ export default function Navbar() {
               Create Event
             </Button>
             <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-            <NotificationMenu>
-              <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-            </NotificationMenu>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" className="font-bold px-0 w-16 text-gray-300">
-                  Login
-                  <LogIn className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                {isLogin ? (
-                  <React.Fragment>
-                    <DialogHeader>
-                      <DialogTitle className="text-lg font-semibold">Login to Your Account</DialogTitle>
-                      <DialogDescription className="text-sm text-gray-500">
-                        Please enter your email and password to login.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form className="flex flex-col gap-4">
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            
+            {isAuthenticated ? (
+              <>
+                <NotificationMenu>
+                  <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                </NotificationMenu>
+                <UserMenu>
+                  <Avatar className="cursor-pointer h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      <Image
+                        src={user?.profileImageUrl || "/images/avatar1.jpg"}
+                        alt={user?.name || "User Avatar"}
+                        width={32}
+                        height={32}
+                        className="rounded-full"
                       />
-                      <input
-                        type="password"
-                        placeholder="Password"
-                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <Button type="submit" className="w-full">Login</Button>
-                      <span className="text-sm text-center text-gray-300">Don't have an account? <button onClick={() => setIsLogin(false)} className="text-white cursor-pointer">Register</button></span>
-                    </form>
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    <DialogHeader>
-                      <DialogTitle className="text-lg font-semibold">Register</DialogTitle>
-                      <DialogDescription className="text-sm text-gray-500">
-                        Please fill in the details below to create a new account.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form className="flex flex-col gap-4">
-                      <input
-                        type="text"
-                        placeholder="Full Name"
-                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Password"
-                        className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <Button type="submit" className="w-full">Register</Button>
-                      <span className="text-sm text-center text-gray-300">Already have an account? <button onClick={() => setIsLogin(true)} className="text-white cursor-pointer">Login</button></span>
-                    </form>
-                  </React.Fragment>
-                )}
-              </DialogContent>
-            </Dialog>
-            {/* <UserMenu>
-              <Avatar className="cursor-pointer">
-                <AvatarFallback>CN</AvatarFallback>
-                <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
-              </Avatar>
-            </UserMenu> */}
+                    </AvatarFallback>
+                    {user?.profileImageUrl && (
+                      <AvatarImage src={user.profileImageUrl} alt={user.name} />
+                    )}
+                  </Avatar>
+                </UserMenu>
+              </>
+            ) : (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" className="font-bold px-0 w-16 text-gray-300">
+                    Login
+                    <LogIn className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  {isLogin ? (
+                    <React.Fragment>
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">Login to Your Account</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                          Please enter your email and password to login.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <GoogleOAuthButton />
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                          </div>
+                        </div>
+                        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                          <Input
+                            type="email"
+                            placeholder="Email"
+                            value={loginForm.email}
+                            onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                            required
+                          />
+                          <Input
+                            type="password"
+                            placeholder="Password"
+                            value={loginForm.password}
+                            onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                            required
+                          />
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Signing in...
+                              </>
+                            ) : (
+                              'Login'
+                            )}
+                          </Button>
+                          <span className="text-sm text-center text-gray-300">
+                            Don't have an account?{' '}
+                            <button 
+                              type="button"
+                              onClick={() => setIsLogin(false)} 
+                              className="text-white cursor-pointer hover:underline"
+                            >
+                              Register
+                            </button>
+                          </span>
+                        </form>
+                      </div>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">Create Account</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                          Please fill in the details below to create a new account.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <GoogleOAuthButton />
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                          </div>
+                        </div>
+                        <form onSubmit={handleRegister} className="flex flex-col gap-4">
+                          <Input
+                            type="text"
+                            placeholder="Full Name"
+                            value={registerForm.name}
+                            onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                            required
+                          />
+                          <Input
+                            type="email"
+                            placeholder="Email"
+                            value={registerForm.email}
+                            onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                            required
+                          />
+                          <Input
+                            type="password"
+                            placeholder="Password"
+                            value={registerForm.password}
+                            onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                            required
+                          />
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating account...
+                              </>
+                            ) : (
+                              'Register'
+                            )}
+                          </Button>
+                          <span className="text-sm text-center text-gray-300">
+                            Already have an account?{' '}
+                            <button 
+                              type="button"
+                              onClick={() => setIsLogin(true)} 
+                              className="text-white cursor-pointer hover:underline"
+                            >
+                              Login
+                            </button>
+                          </span>
+                        </form>
+                      </div>
+                    </React.Fragment>
+                  )}
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </div>
@@ -153,6 +295,13 @@ const UserMenu = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const { user, logout } = useAuth();
+  
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out successfully');
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -166,25 +315,44 @@ const UserMenu = ({
         <div className="flex flex-col items-start p-1 gap-1">
           <div className="flex items-center gap-3 w-full p-2 hover:bg-foreground/10 rounded-xl cursor-pointer">
             <Avatar className="cursor-pointer h-10 w-10">
-              <AvatarFallback>CN</AvatarFallback>
-              <AvatarImage src="/images/avatar1.jpg" alt="avatar" />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                      <Image
+                        src={user?.profileImageUrl || "/images/avatar1.jpg"}
+                        alt={user?.name || "User Avatar"}
+                        width={32}
+                        height={32}
+                        className="rounded-full w-full h-full"
+                      />
+              </AvatarFallback>
+              {user?.profileImageUrl && (
+                <AvatarImage src={user.profileImageUrl} alt={user.name} />
+              )}
             </Avatar>
             <div className="flex flex-col">
-              <span className="font-bold">John Doe</span>
-              <span className="text-xs text-gray-300 font-semibold">john.doe@gmail.com</span>
+              <span className="font-bold">{user?.name}</span>
+              <span className="text-xs text-gray-300 font-semibold">{user?.email}</span>
             </div>
           </div>
           <Separator />
           <div className="flex flex-col w-full">
             <Link href="/profile" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <User className="h-4 w-4" />
               <span>View Profile</span>
             </Link>
             <Link href="/settings" className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
               <span>Settings</span>
             </Link>
-            <div className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md">
+            <button 
+              onClick={handleLogout}
+              className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left"
+            >
+              <LogOut className="h-4 w-4" />
               <span>Logout</span>
-            </div>
+            </button>
           </div>
         </div>
       </SheetContent>

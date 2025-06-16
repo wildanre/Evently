@@ -2,6 +2,7 @@
 
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "next-themes";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export default function Providers({
   children,
@@ -15,8 +16,10 @@ export default function Providers({
       enableSystem
       disableTransitionOnChange
     >
-      <Toaster />
+      <AuthProvider>
+        <Toaster />
         {children}
+      </AuthProvider>
     </ThemeProvider>
   )
 }

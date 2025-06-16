@@ -1,26 +1,33 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 30
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
     }
-  },
-"routes": [
-  {
-    "src": "/api-docs(.*)",
-    "dest": "/api/index.ts"
-  },
-  {
-    "src": "/swagger.json",
-    "dest": "/api/index.ts"
-  },
-  {
-    "src": "/api/(.*)",
-    "dest": "/api/index.ts"
-  },
-  {
-    "src": "/(.*)",
-    "dest": "/public/$1"
+  ],
+  "routes": [
+    {
+      "src": "/api-docs(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/swagger.json",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
   }
-]
 }

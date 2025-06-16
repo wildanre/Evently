@@ -72,6 +72,12 @@ router.post('/register', [
 
     const { name, email, password } = req.body;
 
+    // Check if JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     // Check if user already exists
     const existingUser = await prisma.users.findUnique({
       where: { email }
@@ -103,7 +109,7 @@ router.post('/register', [
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -114,6 +120,17 @@ router.post('/register', [
     });
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('connect')) {
+        return res.status(500).json({ error: 'Database connection error' });
+      }
+      if (error.message.includes('Unique constraint')) {
+        return res.status(400).json({ error: 'User already exists with this email' });
+      }
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -319,6 +336,49 @@ router.get('/google/test', (req: express.Request, res: express.Response) => {
     config,
     status: Object.values(config).every(v => v.includes('✓')) ? 'Ready' : 'Issues Found'
   });
+});
+
+/**
+ * @swagger
+ * /api/auth/health:
+ *   get:
+ *     summary: Health check for authentication service
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Service health status
+ */
+router.get('/health', async (req: express.Request, res: express.Response) => {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`;
+    
+    const config = {
+      database: '✓ Connected',
+      jwtSecret: process.env.JWT_SECRET ? '✓ Set' : '✗ Missing',
+      nodeEnv: process.env.NODE_ENV || 'development'
+    };
+    
+    res.json({
+      message: 'Authentication service health check',
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      config
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      message: 'Authentication service health check',
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error',
+      config: {
+        database: '✗ Connection failed',
+        jwtSecret: process.env.JWT_SECRET ? '✓ Set' : '✗ Missing',
+        nodeEnv: process.env.NODE_ENV || 'development'
+      }
+    });
+  }
 });
 
 export default router;

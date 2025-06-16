@@ -71,6 +71,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
+      'https://evently-backend-seven.vercel.app',
       process.env.FRONTEND_URL,
       // Allow all Vercel domains for API documentation
       /\.vercel\.app$/,
@@ -126,6 +127,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(swaggerStaticRouter);
+
+// Redirect root to API documentation
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

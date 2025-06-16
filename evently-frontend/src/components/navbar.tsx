@@ -120,7 +120,13 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="font-bold px-0 text-gray-300">Create Event</Button>
+            <Button
+              variant="ghost"
+              className="font-bold px-0 text-gray-300"
+              onClick={() => window.location.href = "/create"}
+            >
+              Create Event
+            </Button>
             <Search className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
             
             {isAuthenticated ? (

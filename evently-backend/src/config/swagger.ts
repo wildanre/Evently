@@ -21,7 +21,8 @@ const options = {
     tags: [
       { name: 'Auth', description: 'Authentication endpoints' },
       { name: 'Events', description: 'Event management endpoints' },
-      { name: 'Users', description: 'User profile and event endpoints' }
+      { name: 'Users', description: 'User profile and event endpoints' },
+      { name: 'Notifications', description: 'Notification management endpoints' }
     ],
     components: {
       schemas: {
@@ -162,6 +163,68 @@ const options = {
                   param: { type: 'string' },
                   location: { type: 'string' }
                 }
+              }
+            }
+          }
+        },
+        Notification: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Notification ID' },
+            title: { type: 'string', description: 'Notification title' },
+            message: { type: 'string', description: 'Notification message' },
+            type: {
+              type: 'string',
+              enum: ['EVENT_CREATED', 'EVENT_UPDATED', 'EVENT_CANCELLED', 'EVENT_REMINDER', 'REGISTRATION_CONFIRMED', 'REGISTRATION_APPROVED', 'REGISTRATION_REJECTED', 'FEEDBACK_REQUEST', 'GENERAL'],
+              description: 'Notification type'
+            },
+            isRead: { type: 'boolean', description: 'Whether notification has been read' },
+            userId: { type: 'string', description: 'Target user ID' },
+            eventId: { type: 'string', nullable: true, description: 'Related event ID' },
+            createdAt: { type: 'string', format: 'date-time', description: 'Creation timestamp' },
+            updatedAt: { type: 'string', format: 'date-time', description: 'Last update timestamp' },
+            event: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: { type: 'string', description: 'Event ID' },
+                name: { type: 'string', description: 'Event name' },
+                startDate: { type: 'string', format: 'date-time', description: 'Event start date' },
+                endDate: { type: 'string', format: 'date-time', description: 'Event end date' },
+                location: { type: 'string', nullable: true, description: 'Event location' }
+              }
+            }
+          }
+        },
+        NotificationInput: {
+          type: 'object',
+          required: ['title', 'message', 'type', 'userId'],
+          properties: {
+            title: { type: 'string', minLength: 1, description: 'Notification title' },
+            message: { type: 'string', minLength: 1, description: 'Notification message' },
+            type: {
+              type: 'string',
+              enum: ['EVENT_CREATED', 'EVENT_UPDATED', 'EVENT_CANCELLED', 'EVENT_REMINDER', 'REGISTRATION_CONFIRMED', 'REGISTRATION_APPROVED', 'REGISTRATION_REJECTED', 'FEEDBACK_REQUEST', 'GENERAL'],
+              description: 'Notification type'
+            },
+            userId: { type: 'string', description: 'Target user ID' },
+            eventId: { type: 'string', description: 'Related event ID (optional)' }
+          }
+        },
+        NotificationsResponse: {
+          type: 'object',
+          properties: {
+            notifications: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Notification' }
+            },
+            pagination: {
+              type: 'object',
+              properties: {
+                page: { type: 'integer', description: 'Current page' },
+                limit: { type: 'integer', description: 'Items per page' },
+                total: { type: 'integer', description: 'Total items' },
+                totalPages: { type: 'integer', description: 'Total pages' }
               }
             }
           }

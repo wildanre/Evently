@@ -2,6 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Seed configuration
+// This tells Prisma how to run the seed script
+// Run with: pnpm db:seed
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -66,6 +70,24 @@ model events {
   event_participants_event_participants_managerEventIdToevents event_participants[] @relation("event_participants_managerEventIdToevents")
   event_participants_event_participants_speakerEventIdToevents event_participants[] @relation("event_participants_speakerEventIdToevents")
   users                                                        users                @relation(fields: [organizerId], references: [id])
+  notifications                                                notifications[]
+}
+
+model notifications {
+  id          String            @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean           @default(false)
+  userId      String
+  eventId     String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  users       users             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events      events?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model users {
@@ -80,6 +102,7 @@ model users {
   event_feedback     event_feedback[]
   event_participants event_participants[]
   events             events[]
+  notifications      notifications[]
 }
 
 enum EventRole {
@@ -100,4 +123,16 @@ enum RegistrationStatus {
   OPEN
   CLOSED
   WAITLIST
+}
+
+enum NotificationType {
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_CANCELLED
+  EVENT_REMINDER
+  REGISTRATION_CONFIRMED
+  REGISTRATION_APPROVED
+  REGISTRATION_REJECTED
+  FEEDBACK_REQUEST
+  GENERAL
 }

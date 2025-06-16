@@ -57,6 +57,18 @@ export enum RegistrationStatus {
   WAITLIST = 'WAITLIST'
 }
 
+export enum NotificationType {
+  EVENT_CREATED = 'EVENT_CREATED',
+  EVENT_UPDATED = 'EVENT_UPDATED',
+  EVENT_CANCELLED = 'EVENT_CANCELLED',
+  EVENT_REMINDER = 'EVENT_REMINDER',
+  REGISTRATION_CONFIRMED = 'REGISTRATION_CONFIRMED',
+  REGISTRATION_APPROVED = 'REGISTRATION_APPROVED',
+  REGISTRATION_REJECTED = 'REGISTRATION_REJECTED',
+  FEEDBACK_REQUEST = 'FEEDBACK_REQUEST',
+  GENERAL = 'GENERAL'
+}
+
 // Event Participant types
 export interface EventParticipant {
   id: string;
@@ -77,6 +89,20 @@ export interface EventFeedback {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Notification types
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  isRead: boolean;
+  userId: string;
+  eventId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  event?: Event;
 }
 
 // API Response types
@@ -142,6 +168,21 @@ export interface UpdateUserData {
   name?: string;
   bio?: string;
   profileImageUrl?: string;
+}
+
+export interface CreateNotificationData {
+  title: string;
+  message: string;
+  type: NotificationType;
+  userId: string;
+  eventId?: string;
+}
+
+export interface NotificationFilters {
+  page?: number;
+  limit?: number;
+  isRead?: boolean;
+  type?: NotificationType;
 }
 
 // Validation error types

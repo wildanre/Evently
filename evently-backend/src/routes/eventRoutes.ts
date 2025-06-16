@@ -9,6 +9,7 @@ import {
   EventFilters,
   PaginationResponse 
 } from '../types';
+import { NotificationService } from '../utils/notificationService';
 
 const router: express.Router = express.Router();
 
@@ -417,6 +418,14 @@ router.post('/', [
       }
     });
 
+    // Send notification to organizer
+    try {
+      await NotificationService.sendEventCreatedNotification(req.user!.id, event.id);
+    } catch (notificationError) {
+      console.error('Failed to send event created notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
+
     res.status(201).json(event);
   } catch (error) {
     console.error('Create event error:', error);
@@ -479,6 +488,14 @@ router.put('/:id', [
         }
       }
     });
+
+    // Send notification to participants about event update
+    try {
+      await NotificationService.sendEventUpdateNotification(id);
+    } catch (notificationError) {
+      console.error('Failed to send event update notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     res.json(updatedEvent);
   } catch (error) {
@@ -562,6 +579,14 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
       where: { id },
       data: { attendeeCount: { increment: 1 } }
     });
+
+    // Send registration confirmation notification
+    try {
+      await NotificationService.sendRegistrationConfirmation(req.user!.id, id);
+    } catch (notificationError) {
+      console.error('Failed to send registration confirmation notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     res.json({ message: 'Successfully registered for event' });
   } catch (error) {

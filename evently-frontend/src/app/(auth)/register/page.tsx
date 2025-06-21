@@ -9,7 +9,6 @@ import { registerUser } from '@/lib/auth';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,11 +16,10 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const { login, isAuthenticated } = useAuth();
-  const router = useRouter();
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    router.push('/events');
+    window.location.href = '/events';
     return null;
   }
 
@@ -33,7 +31,7 @@ export default function RegisterPage() {
       const response = await registerUser(form);
       login(response.token, response.user);
       toast.success('Registration successful!');
-      router.push('/events');
+      window.location.href = '/events';
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {

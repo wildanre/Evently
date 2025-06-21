@@ -20,7 +20,6 @@ out/
 .env.production.local
 
 # Prisma
-prisma/migrations/
 .prisma/
 
 # IDE and editors

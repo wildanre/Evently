@@ -294,9 +294,34 @@ describe('AuthContext', () => {
         bio: 'Test bio'
       };
 
+      // Create a custom TestComponent that uses the mock data
+      const TestComponentWithOptionalFields = () => {
+        const { user, isLoading, login, logout, isAuthenticated } = useAuth();
+        
+        return (
+          <div>
+            <div data-testid="loading">{isLoading ? 'loading' : 'loaded'}</div>
+            <div data-testid="authenticated">{isAuthenticated ? 'true' : 'false'}</div>
+            <div data-testid="user-name">{user?.name || 'no-user'}</div>
+            <div data-testid="user-email">{user?.email || 'no-email'}</div>
+            <div data-testid="user-bio">{user?.bio || 'no-bio'}</div>
+            <div data-testid="user-profile-image">{user?.profileImageUrl || 'no-image'}</div>
+            <button 
+              data-testid="login-btn" 
+              onClick={() => login('test-token', mockUserWithOptionalFields)}
+            >
+              Login
+            </button>
+            <button data-testid="logout-btn" onClick={logout}>
+              Logout
+            </button>
+          </div>
+        );
+      };
+
       render(
         <AuthProvider>
-          <TestComponent />
+          <TestComponentWithOptionalFields />
         </AuthProvider>
       );
 
@@ -304,15 +329,16 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('loading')).toHaveTextContent('loaded');
       });
 
-      // Manually trigger login with optional fields
-      const { login } = require('../src/contexts/AuthContext').__testExports || {};
-      
+      // Login with optional fields
       act(() => {
         screen.getByTestId('login-btn').click();
       });
 
       expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
-      expect(screen.getByTestId('user-name')).toHaveTextContent('Test User');
+      expect(screen.getByTestId('user-name')).toHaveTextContent('Jane Doe');
+      expect(screen.getByTestId('user-email')).toHaveTextContent('jane@example.com');
+      expect(screen.getByTestId('user-bio')).toHaveTextContent('Test bio');
+      expect(screen.getByTestId('user-profile-image')).toHaveTextContent('https://example.com/profile.jpg');
     });
   });
 });

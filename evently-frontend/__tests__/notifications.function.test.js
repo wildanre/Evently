@@ -16,6 +16,9 @@ import {
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Mock environment variable
+const mockApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+
 // Mock localStorage
 Object.defineProperty(window, 'localStorage', {
   value: {
@@ -67,7 +70,7 @@ describe('Notifications Functions', () => {
       const result = await getNotifications();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/notifications',
+        `${mockApiBaseUrl}/notifications`,
         {
           method: 'GET',
           headers: {
@@ -100,7 +103,7 @@ describe('Notifications Functions', () => {
       await getNotifications(filters);
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/notifications?page=2&limit=5&isRead=true&type=EVENT_REMINDER',
+        `${mockApiBaseUrl}/notifications?page=2&limit=5&isRead=true&type=EVENT_REMINDER`,
         expect.any(Object)
       );
     });
@@ -137,7 +140,7 @@ describe('Notifications Functions', () => {
       const result = await getUnreadNotificationsCount();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/notifications/unread-count',
+        `${mockApiBaseUrl}/notifications/unread-count`,
         {
           method: 'GET',
           headers: {
@@ -177,7 +180,7 @@ describe('Notifications Functions', () => {
       const result = await markNotificationAsRead('1');
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/notifications/1/read',
+        `${mockApiBaseUrl}/notifications/1/read`,
         {
           method: 'PATCH',
           headers: {
@@ -202,7 +205,7 @@ describe('Notifications Functions', () => {
       const result = await markAllNotificationsAsRead();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/notifications/mark-all-read',
+        `${mockApiBaseUrl}/notifications/mark-all-read`,
         {
           method: 'PATCH',
           headers: {
@@ -227,7 +230,7 @@ describe('Notifications Functions', () => {
       const result = await deleteNotification('1');
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/notifications/1',
+        `${mockApiBaseUrl}/notifications/1`,
         {
           method: 'DELETE',
           headers: {

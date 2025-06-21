@@ -32,6 +32,9 @@ Object.defineProperty(window, 'localStorage', {
   writable: true
 });
 
+// Mock environment variable
+const mockApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+
 describe('Auth Functions', () => {
   beforeEach(() => {
     fetch.mockClear();
@@ -65,7 +68,7 @@ describe('Auth Functions', () => {
       const result = await loginUser(loginData);
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/auth/login',
+        `${mockApiBaseUrl}/auth/login`,
         {
           method: 'POST',
           headers: {
@@ -134,7 +137,7 @@ describe('Auth Functions', () => {
       const result = await registerUser(registerData);
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/auth/register',
+        `${mockApiBaseUrl}/auth/register`,
         {
           method: 'POST',
           headers: {
@@ -193,7 +196,7 @@ describe('Auth Functions', () => {
       const result = await getGoogleAuthUrl();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://evently-backend-amber.vercel.app/api/auth/google/url'
+        `${mockApiBaseUrl}/auth/google/url`
       );
       expect(result).toBe(mockResponse.url);
     });
@@ -212,7 +215,7 @@ describe('Auth Functions', () => {
       initiateGoogleOAuth();
 
       expect(window.location.href).toBe(
-        'https://evently-backend-amber.vercel.app/api/auth/google'
+        `${mockApiBaseUrl}/auth/google`
       );
     });
   });

@@ -11,7 +11,6 @@ import { CalendarDays, MapPin, Users, Search, Filter, X, Sun, Moon, Grid3X3, Lis
 import { getEvents, Event, EventsResponse, getEventCategories, getFeaturedEvents, getUpcomingEvents, getEventsByCategory, EventCategory } from '@/lib/events';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 type ViewMode = 'grid' | 'list';
 
@@ -129,7 +128,6 @@ const CategoryCard = ({ category }: { category: EventCategory }) => {
 
 export default function DiscoverPage() {
   const { isAuthenticated } = useAuth();
-  const router = useRouter();
   
   // States for all events view
   const [events, setEvents] = useState<Event[]>([]);
@@ -217,7 +215,7 @@ export default function DiscoverPage() {
   };
 
   const navigateToEvent = (eventId: string) => {
-    router.push(`/events/${eventId}`);
+    window.location.href = `/events/${eventId}`;
   };
 
   const handleSearch = () => {

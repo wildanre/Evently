@@ -2,12 +2,9 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 function AuthCallbackContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -15,9 +12,10 @@ function AuthCallbackContent() {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        const token = searchParams.get('token');
-        const userParam = searchParams.get('user');
-        const error = searchParams.get('error');
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const userParam = urlParams.get('user');
+        const error = urlParams.get('error');
 
         if (error) {
           setErrorMessage(getErrorMessage(error));
@@ -48,7 +46,7 @@ function AuthCallbackContent() {
     };
 
     processCallback();
-  }, [searchParams, login, router]);
+  }, [login]);
 
   const getErrorMessage = (error: string): string => {
     switch (error) {
@@ -64,7 +62,7 @@ function AuthCallbackContent() {
   };
 
   const handleRetry = () => {
-    router.push('/events');
+    window.location.href = '/events';
   };
 
   if (status === 'loading') {

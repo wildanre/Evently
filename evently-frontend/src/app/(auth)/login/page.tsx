@@ -9,7 +9,6 @@ import { loginUser } from '@/lib/auth';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,10 +16,9 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const { login, isAuthenticated } = useAuth();
-  const router = useRouter();
 
   if (isAuthenticated) {
-    router.push('/events');
+    window.location.href = '/events';
     return null;
   }
 
@@ -32,7 +30,7 @@ export default function LoginPage() {
       const response = await loginUser(form);
       login(response.token, response.user);
       toast.success('Login successful!');
-      router.push('/events');
+      window.location.href = '/events';
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Login failed');
     } finally {

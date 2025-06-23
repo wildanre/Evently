@@ -1,6 +1,6 @@
 import { getAuthHeaders } from './auth';
 
-const API_BASE_URL = "https://evently-backend-amber.vercel.app/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ;
 
 export interface UserProfile {
   id: string;

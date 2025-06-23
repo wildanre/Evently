@@ -89,5 +89,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
+      - name: Run Jest Tests
+        run: npm run test:ci
+        env:
+          CI: true
+          NODE_ENV: test
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:3001/api
+      
+      - name: Test Results Summary
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ All tests passed! Ready for deployment."
+          else
+            echo "❌ Tests failed! Deployment will be blocked."
+            exit 1
+          fi
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          file: ./evently-frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+      
       - name: Build frontend
         run: pnpm build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:3001/api

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { MapPin, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -8,53 +9,56 @@ import { cn } from "@/lib/utils";
 
 interface Event {
   id: string;
-  date: string;
-  day: string;
-  time: string;
-  title: string;
-  organizers: string;
+  startDate: string;
+  endDate: string;
+  name: string;
+  users: {
+    name: string;
+  };
   location: string;
-  attendees: number;
+  attendeeCount: number;
   imageUrl: string;
-  going: boolean;
 }
 
-const events: Event[] = [
-  {
-    id: "1",
-    date: "Jun 15",
-    day: "Sunday",
-    time: "6:00 PM",
-    title: "Based Community Meetup Yogyakarta",
-    organizers: "By Santosa, Sanaz L., sakti & Bridget",
-    location: "teaLOGi Sky View",
-    attendees: 56,
-    imageUrl: "/base-logo.webp",
-    going: true,
-  },
-  {
-    id: "2",
-    date: "Jun 17",
-    day: "Tuesday",
-    time: "4:00 PM",
-    title: "BUILD BUDDIES Malang",
-    organizers: "By Meta Pool, MaxOne & Build Buddies",
-    location: "Ada Apa Dengan Kopi (AADK) Tlogomas - Coffee & Eatery",
-    attendees: 361,
-    imageUrl:
-      "/https://www.google.com/imgres?q=base%20community%20meet%20up&imgurl=https%3A%2F%2Fimages.lumacdn.com%2Fcdn-cgi%2Fimage%2Fformat%3Dauto%2Cfit%3Dcover%2Cdpr%3D2%2Cbackground%3Dwhite%2Cquality%3D75%2Cwidth%3D400%2Cheight%3D400%2Fevent-covers%2Frg%2F3e798b2d-7380-4884-ad8f-994870f0a9bc&imgrefurl=https%3A%2F%2Flu.ma%2Fzaxyiky0&docid=4sFFZpG0B1gwSM&tbnid=gPig7TQul1CCaM&vet=12ahUKEwjJjZLywu6NAxVETWwGHVn1L6YQM3oECB4QAA..i&w=800&h=800&hcb=2&itg=1&ved=2ahUKEwjJjZLywu6NAxVETWwGHVn1L6YQM3oECB4QAA",
-    going: true,
-  },
-];
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatDay(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, { weekday: "short" });
+}
+
+function formatTime(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
 
 export default function PastEventCard() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("https://evently-backend-amber.vercel.app/api/events")
+      .then((res) => res.json())
+      .then((data) => {
+        setEvents(data.events || []);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div className="mx-4 text-neutral-400">Loading...</div>;
+  }
+
   return (
     <div className="space-y-12 mx-4">
-      {events.map((event, index) => (
+      {events.map((event) => (
         <div key={event.id} className="flex">
           <div className="w-24 flex flex-col items-start">
-            <div className="font-medium">{event.date}</div>
-            <div className="text-neutral-400">{event.day}</div>
+            <div className="font-medium">{formatDate(event.startDate)}</div>
+            <div className="text-neutral-400">{formatDay(event.startDate)}</div>
           </div>
           <div className="relative flex-grow">
             <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-neutral-600 flex items-center justify-center">
@@ -64,13 +68,15 @@ export default function PastEventCard() {
               <CardContent className="p-0 mx-4">
                 <div className="flex p-2 gap-4">
                   <div className="flex-grow">
-                    <div className="text-neutral-400 mb-1">{event.time}</div>
+                    <div className="text-neutral-400 mb-1">
+                      {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                    </div>
                     <h3 className="text-xl font-semibold mb-2">
-                      {event.title}
+                      {event.name}
                     </h3>
                     <div className="flex items-center gap-1 text-sm text-neutral-400 mb-2">
                       <Users className="h-4 w-4" />
-                      <span>{event.organizers}</span>
+                      <span>{event.users?.name || "Unknown Organizer"}</span>
                     </div>
                     <div className="flex items-center gap-1 text-sm text-neutral-400 mb-4">
                       <MapPin className="h-4 w-4" />
@@ -99,7 +105,7 @@ export default function PastEventCard() {
                         ))}
                       </div>
                       <span className="text-sm text-neutral-400">
-                        {event.attendees}
+                        {event.attendeeCount}
                       </span>
                     </div>
                   </div>
@@ -107,9 +113,9 @@ export default function PastEventCard() {
                     <div className="w-32 h-32 overflow-hidden rounded-lg">
                       <img
                         src={event.imageUrl}
-                        alt={event.title}
+                        alt={event.name}
                         className="w-full h-full object-cover"
-                      />{" "}
+                      />
                     </div>
                   </div>
                 </div>

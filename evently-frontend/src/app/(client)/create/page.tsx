@@ -1,4 +1,4 @@
-import EventCreationForm from "@/components/event-creation";
+import EventCreationForm from "@/components/event-form/event-creation-form"
 import React from "react";
 
 export default function CreatePage() {

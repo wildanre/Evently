@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { JoinEventButton } from "@/components/join-event-button";
 import {
   MapPin,
   Users,
@@ -27,15 +28,18 @@ interface Event {
   attendees: number;
   imageUrl: string;
   going: boolean;
+  requireApproval?: boolean;
+  participants?: any[];
 }
 
 interface EventSliderProps {
   event: Event | null;
   isOpen: boolean;
   onClose: () => void;
+  onJoinStatusChange?: () => void;
 }
 
-const EventSlider = ({ event, isOpen, onClose }: EventSliderProps) => {
+const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSliderProps) => {
   if (!event) return null;
 
   return (
@@ -172,9 +176,14 @@ const EventSlider = ({ event, isOpen, onClose }: EventSliderProps) => {
           {/* Footer Actions */}
           <div className="p-6 border-t border-neutral-700">
             <div className="flex gap-3">
-              <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
-                Join Event
-              </Button>
+              <JoinEventButton
+                eventId={event.id}
+                isJoined={false}
+                eventName={event.title}
+                requireApproval={event.requireApproval}
+                onJoinStatusChange={onJoinStatusChange}
+                className="flex-1"
+              />
               <Button
                 variant="outline"
                 size="icon"

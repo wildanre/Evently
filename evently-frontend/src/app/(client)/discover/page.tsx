@@ -10,6 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { CalendarDays, MapPin, Users, Search, Filter, X, Sun, Moon, Grid3X3, List, RefreshCw, AlertCircle, ChevronRight, Briefcase, Code, Palette, Music, Heart, Gamepad2, BookOpen, Coffee, Zap, TrendingUp, Navigation } from 'lucide-react';
 import { getEvents, Event, EventsResponse, getEventCategories, getFeaturedEvents, getUpcomingEvents, getEventsByCategory, EventCategory } from '@/lib/events';
 import { useAuth } from '@/contexts/AuthContext';
+import { JoinEventButton } from '@/components/join-event-button';
 import Link from 'next/link';
 
 type ViewMode = 'grid' | 'list';
@@ -41,68 +42,89 @@ const formatDate = (dateString: string) => {
 };
 
 // Simple Event Card Component
-const SimpleEventCard = ({ event, onClick }: { event: Event, onClick?: () => void }) => (
-  <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border cursor-pointer" onClick={onClick}>
-    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-      <img
-        src={event.imageUrl || "/api/placeholder/400/300"}
-        alt={event.name}
-        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        onError={(e) => {
-          e.currentTarget.src = "/api/placeholder/400/300";
-        }}
-      />
-      {event.tags.length > 0 && (
-        <div className="absolute top-2 left-2">
-          <Badge variant="secondary" className="bg-black/50 text-white text-xs">
-            {event.tags[0]}
-          </Badge>
-        </div>
-      )}
-      <div className="absolute top-2 right-2">
-        <Badge variant="outline" className="bg-white/90 text-black text-xs">
-          <Users className="h-3 w-3 mr-1" />
-          {event.attendeeCount}
-        </Badge>
-      </div>
-    </div>
-    <CardContent className="p-4">
-      <h3 className="font-semibold text-lg line-clamp-2 mb-2 group-hover:text-primary transition-colors">
-        {event.name}
-      </h3>
-      <p className="text-sm text-muted-foreground dark:text-gray-400 line-clamp-3 leading-relaxed">
-        {event.description}
-      </p>
-      <div className="flex items-center justify-between mt-3">
-        <div className="flex items-center text-xs text-muted-foreground dark:text-gray-500">
-          <CalendarDays className="h-3 w-3 mr-1" />
-          {formatDate(event.startDate)}
-        </div>
-        {event.capacity && (
-          <div className="text-xs text-muted-foreground">
-            {event.attendeeCount}/{event.capacity}
+const SimpleEventCard = ({ event, onClick, onJoinStatusChange }: { 
+  event: Event, 
+  onClick?: () => void, 
+  onJoinStatusChange?: () => void 
+}) => {
+  return (
+    <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border">
+      <div className="aspect-[4/3] bg-muted relative overflow-hidden cursor-pointer" onClick={onClick}>
+        <img
+          src={event.imageUrl || "/api/placeholder/400/300"}
+          alt={event.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            e.currentTarget.src = "/api/placeholder/400/300";
+          }}
+        />
+        {event.tags.length > 0 && (
+          <div className="absolute top-2 left-2">
+            <Badge variant="secondary" className="bg-black/50 text-white text-xs">
+              {event.tags[0]}
+            </Badge>
           </div>
         )}
-      </div>
-      {event.location && (
-        <div className="flex items-center mt-1 text-xs text-muted-foreground dark:text-gray-500">
-          <MapPin className="h-3 w-3 mr-1" />
-          {event.location}
-        </div>
-      )}
-      <div className="flex items-center justify-between mt-3">
-        <div className="text-xs text-muted-foreground">
-          by {event.users.name}
-        </div>
-        {event.status === 'PUBLISHED' && (
-          <Badge className="text-xs bg-green-100 text-green-800">
-            Available
+        <div className="absolute top-2 right-2">
+          <Badge variant="outline" className="bg-white/90 text-black text-xs">
+            <Users className="h-3 w-3 mr-1" />
+            {event.attendeeCount}
           </Badge>
-        )}
+        </div>
       </div>
-    </CardContent>
-  </Card>
-);
+      <CardContent className="p-4">
+        <div className="cursor-pointer" onClick={onClick}>
+          <h3 className="font-semibold text-lg line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+            {event.name}
+          </h3>
+          <p className="text-sm text-muted-foreground dark:text-gray-400 line-clamp-3 leading-relaxed">
+            {event.description}
+          </p>
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center text-xs text-muted-foreground dark:text-gray-500">
+              <CalendarDays className="h-3 w-3 mr-1" />
+              {formatDate(event.startDate)}
+            </div>
+            {event.capacity && (
+              <div className="text-xs text-muted-foreground">
+                {event.attendeeCount}/{event.capacity}
+              </div>
+            )}
+          </div>
+          {event.location && (
+            <div className="flex items-center mt-1 text-xs text-muted-foreground dark:text-gray-500">
+              <MapPin className="h-3 w-3 mr-1" />
+              {event.location}
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-3">
+            <div className="text-xs text-muted-foreground">
+              by {event.users.name}
+            </div>
+            {event.status === 'PUBLISHED' && (
+              <Badge className="text-xs bg-green-100 text-green-800">
+                Available
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        {/* Join Button */}
+        <div className="mt-4 pt-3 border-t border-border">
+          <JoinEventButton
+            eventId={event.id}
+            isJoined={false} // We'll determine this in the component itself
+            eventName={event.name}
+            requireApproval={event.requireApproval}
+            onJoinStatusChange={onJoinStatusChange}
+            size="sm"
+            className="w-full"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 // Category Card Component
 const CategoryCard = ({ category }: { category: EventCategory }) => {
@@ -216,6 +238,16 @@ export default function DiscoverPage() {
 
   const navigateToEvent = (eventId: string) => {
     window.location.href = `/events/${eventId}`;
+  };
+
+  const handleJoinStatusChange = () => {
+    // Refresh the current events list when join status changes
+    if (showAllEvents) {
+      loadEvents(currentPage, searchTerm);
+    } else {
+      // Refresh discover sections
+      loadDiscoverData();
+    }
   };
 
   const handleSearch = () => {
@@ -337,6 +369,7 @@ export default function DiscoverPage() {
                           key={event.id}
                           event={event}
                           onClick={() => navigateToEvent(event.id)}
+                          onJoinStatusChange={handleJoinStatusChange}
                         />
                       ))}
                     </div>
@@ -373,6 +406,7 @@ export default function DiscoverPage() {
                           key={event.id}
                           event={event}
                           onClick={() => navigateToEvent(event.id)}
+                          onJoinStatusChange={handleJoinStatusChange}
                         />
                       ))}
                     </div>
@@ -505,6 +539,7 @@ export default function DiscoverPage() {
                     key={event.id}
                     event={event}
                     onClick={() => navigateToEvent(event.id)}
+                    onJoinStatusChange={handleJoinStatusChange}
                   />
                 ))}
               </div>

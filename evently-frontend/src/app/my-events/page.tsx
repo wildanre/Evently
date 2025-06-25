@@ -8,6 +8,7 @@ import { Calendar, MapPin, Clock, Users, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
+import { JoinEventButton } from "@/components/join-event-button";
 
 interface Event {
   id: string;
@@ -36,6 +37,11 @@ export default function MyEventsPage() {
     }
   }, [isAuthenticated]);
 
+  const handleEventLeft = () => {
+    // Refresh the events list when user leaves an event
+    fetchMyEvents();
+  };
+
   const fetchMyEvents = async () => {
     try {
       const token = localStorage.getItem('auth_token');
@@ -55,8 +61,8 @@ export default function MyEventsPage() {
         return;
       }
 
-      // Fetch all events
-      const response = await fetch(`${API_ENDPOINTS.EVENTS}`, {
+      // Fetch joined events using dedicated endpoint
+      const response = await fetch(`${API_ENDPOINTS.EVENTS}/my-joined`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -65,15 +71,8 @@ export default function MyEventsPage() {
       if (response.ok) {
         const data = await response.json();
         
-        // Filter events where current user is in participants list
-        const myJoinedEvents = data.events ? data.events.filter((event: any) => 
-          event.participants && event.participants.some((participant: any) => 
-            participant.user && participant.user.email === userEmail && participant.status === 'confirmed'
-          )
-        ) : [];
-
         // Transform data to match expected interface
-        const transformedEvents = myJoinedEvents.map((event: any) => ({
+        const transformedEvents = data.events ? data.events.map((event: any) => ({
           id: event.id,
           name: event.name,
           description: event.description,
@@ -86,7 +85,7 @@ export default function MyEventsPage() {
           attendeesCount: event.attendeeCount || 0,
           organizerName: event.organizer ? event.organizer.name : 'Unknown',
           status: getEventStatus(event.startDate, event.endDate)
-        }));
+        })) : [];
 
         setEvents(transformedEvents);
       } else {
@@ -318,12 +317,21 @@ export default function MyEventsPage() {
                   <div className="flex gap-2">
                     <Button 
                       size="sm" 
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      variant="outline"
+                      className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50"
                       onClick={() => window.location.href = `/events/${event.id}`}
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
+                    <JoinEventButton
+                      eventId={event.id}
+                      isJoined={true}
+                      eventName={event.name}
+                      onJoinStatusChange={handleEventLeft}
+                      size="sm"
+                      className="flex-1"
+                    />
                   </div>
                 </CardContent>
               </Card>

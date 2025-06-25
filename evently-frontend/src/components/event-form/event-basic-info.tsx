@@ -58,13 +58,18 @@ export function EventBasicInfo({
         </Select>
       </div>
 
-      <div>
+      <div className="relative">
         <Input
-          placeholder="Event Name"
+          placeholder="Event Name *"
           className="bg-transparent border-none px-0 h-auto py-6 text-2xl font-semibold text-white placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
           value={eventName}
           onChange={(e) => onEventNameChange(e.target.value)}
         />
+        {!eventName.trim() && (
+          <div className="absolute -bottom-1 left-0 text-xs text-red-400">
+            Event name is required
+          </div>
+        )}
       </div>
     </>
   );

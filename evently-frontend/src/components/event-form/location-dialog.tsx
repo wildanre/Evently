@@ -24,12 +24,14 @@ interface LocationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (locationData: any) => void;
+  currentLocation?: string;
 }
 
 export function LocationDialog({
   open,
   onOpenChange,
   onSave,
+  currentLocation,
 }: LocationDialogProps) {
   const [locationType, setLocationType] = useState("offline");
 
@@ -54,11 +56,18 @@ export function LocationDialog({
             className="w-full text-left justify-start p-0 h-auto text-white hover:bg-transparent"
           >
             <div className="flex items-center gap-3">
-              <div>
-                <p className="text-sm font-medium">Add Event Location</p>
-                <p className="text-xs text-gray-500">
-                  Offline location or virtual link
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {currentLocation ? "Edit Event Location" : "Add Event Location *"}
                 </p>
+                <p className="text-xs text-gray-500">
+                  {currentLocation || "Offline location or virtual link (required)"}
+                </p>
+                {!currentLocation && (
+                  <p className="text-xs text-red-400 mt-1">
+                    Location is required
+                  </p>
+                )}
               </div>
             </div>
           </Button>

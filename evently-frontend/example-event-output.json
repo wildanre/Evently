@@ -1,0 +1,16 @@
+{
+  "name": "Tech Conference 2025",
+  "description": "Annual technology conference featuring latest trends in AI, blockchain, and web development. Join industry experts for keynote speeches, workshops, and networking opportunities.",
+  "location": "Jakarta Convention Center, Jl. Gatot Subroto, Jakarta",
+  "startDate": "2025-07-15T09:00:00.000Z",
+  "endDate": "2025-07-15T17:00:00.000Z",
+  "capacity": 100,
+  "tags": [
+    "technology",
+    "conference",
+    "networking"
+  ],
+  "visibility": true,
+  "requireApproval": false,
+  "imageUrl": "https://via.placeholder.com/400x400"
+}

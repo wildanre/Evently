@@ -88,7 +88,7 @@ export function EventDateTimePicker({
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-full justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700",
                   !startDate && "text-muted-foreground"
                 )}
               >
@@ -108,8 +108,9 @@ export function EventDateTimePicker({
                 mode="single"
                 selected={startDate}
                 onSelect={onStartDateChange}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
+                className="bg-neutral-900 text-white"
               />
             </PopoverContent>
           </Popover>
@@ -142,7 +143,7 @@ export function EventDateTimePicker({
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-full justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700",
                   !endDate && "text-muted-foreground"
                 )}
               >
@@ -158,8 +159,9 @@ export function EventDateTimePicker({
                 mode="single"
                 selected={endDate}
                 onSelect={onEndDateChange}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => date < startDate}
                 initialFocus
+                className="bg-neutral-900 text-white"
               />
             </PopoverContent>
           </Popover>

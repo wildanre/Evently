@@ -49,11 +49,15 @@ export function DescriptionDialog({
           >
             <div className="flex-1">
               <p className="text-sm font-medium">
-                {description ? "Edit Description" : "Add Description"}
+                {description ? "Edit Description" : "Add Description *"}
               </p>
-              {description && (
+              {description ? (
                 <p className="text-xs text-gray-500 truncate mt-1">
                   {description.substring(0, 50)}...
+                </p>
+              ) : (
+                <p className="text-xs text-red-400 mt-1">
+                  Description is required
                 </p>
               )}
             </div>
@@ -72,15 +76,16 @@ export function DescriptionDialog({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="description" className="text-white">
-                Description
+                Description *
               </Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => onDescriptionChange(e.target.value)}
-                placeholder="Describe your event, what attendees can expect, agenda, requirements, etc."
+                placeholder="Describe your event, what attendees can expect, agenda, requirements, etc. (Required)"
                 className="min-h-[120px] bg-[#1a1a2e] border-gray-700 text-white resize-none"
                 rows={6}
+                required
               />
             </div>
 

@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Upload, PenLine, ChevronDown } from "lucide-react";
 
 interface EventImageUploadProps {
-  onImageUpload?: () => void;
+  imageUrl?: string;
+  onImageUpload?: (url: string) => void;
   onThemeChange?: () => void;
 }
 
 export function EventImageUpload({
+  imageUrl,
   onImageUpload,
   onThemeChange,
 }: EventImageUploadProps) {
@@ -34,7 +36,11 @@ export function EventImageUpload({
           variant="outline"
           size="icon"
           className="absolute bottom-4 right-4 bg-black/50 border-gray-700 text-white rounded-full"
-          onClick={onImageUpload}
+          onClick={() => {
+            // For now, simulate image upload with a placeholder URL
+            const placeholderUrl = "https://via.placeholder.com/400x400";
+            onImageUpload?.(placeholderUrl);
+          }}
         >
           <Upload className="h-4 w-4" />
         </Button>

@@ -13,6 +13,7 @@ import { TagsInput } from "./tags-input";
 import { API_ENDPOINTS } from "@/lib/api";
 import { debugApiConfig } from "@/lib/debug-api";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export default function EventCreationForm() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,9 +26,14 @@ export default function EventCreationForm() {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="w-full mx-4 max-w-5xl bg-gradient-to-b from-neutral-900 to-black mt-4 p-6 rounded-lg">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-white">Loading...</div>
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="text-gray-600 dark:text-gray-300">Loading...</div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -36,16 +42,30 @@ export default function EventCreationForm() {
   // Show login prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="w-full mx-4 max-w-5xl bg-gradient-to-b from-neutral-900 to-black mt-4 p-6 rounded-lg">
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <h2 className="text-2xl font-semibold text-white mb-4">Login Required</h2>
-          <p className="text-gray-400 mb-6">You need to be logged in to create an event.</p>
-          <Button 
-            className="bg-white text-black hover:bg-gray-200"
-            onClick={() => window.location.href = '/login'}
-          >
-            Go to Login
-          </Button>
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Login Required</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md">
+              You need to be logged in to create an event. Please sign in to continue.
+            </p>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+              onClick={() => {
+                toast.info("Redirecting to login page...");
+                setTimeout(() => {
+                  window.location.href = '/login';
+                }, 1000);
+              }}
+            >
+              Go to Login
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -194,7 +214,10 @@ export default function EventCreationForm() {
     const validationErrors = getValidationErrors();
     
     if (validationErrors.length > 0) {
-      alert(`Please fill in the following required fields:\n• ${validationErrors.join('\n• ')}`);
+      toast.error("Please fill in all required fields", {
+        description: validationErrors.join(", "),
+        duration: 5000,
+      });
       return;
     }
 
@@ -231,14 +254,26 @@ export default function EventCreationForm() {
     try {
       // Check if user is authenticated
       if (!isAuthenticated) {
-        alert("Please log in to create an event.");
+        toast.error("Authentication required", {
+          description: "Please log in to create an event.",
+          action: {
+            label: "Login",
+            onClick: () => window.location.href = '/login'
+          }
+        });
         return;
       }
 
       // Get auth token from localStorage
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        alert("Authentication token not found. Please log in again.");
+        toast.error("Authentication token not found", {
+          description: "Please log in again.",
+          action: {
+            label: "Login",
+            onClick: () => window.location.href = '/login'
+          }
+        });
         return;
       }
 
@@ -255,7 +290,11 @@ export default function EventCreationForm() {
       if (response.ok) {
         const result = await response.json();
         console.log("Event created successfully:", result);
-        alert("Event created successfully!");
+        
+        toast.success("Event created successfully!", {
+          description: `${eventName} has been created and is now live.`,
+          duration: 5000,
+        });
         
         // Reset form after successful creation
         setEventName("");
@@ -272,70 +311,128 @@ export default function EventCreationForm() {
         if (response.status === 400) {
           // Handle validation errors from backend
           if (errorData.errors) {
-            const backendErrors = errorData.errors.map((err: any) => err.msg).join('\n• ');
-            alert(`Validation errors:\n• ${backendErrors}`);
+            const backendErrors = errorData.errors.map((err: any) => err.msg).join(', ');
+            toast.error("Validation errors", {
+              description: backendErrors,
+              duration: 5000,
+            });
           } else {
-            alert(`Error: ${errorData.error || "Bad request"}`);
+            toast.error("Bad request", {
+              description: errorData.error || "Please check your input and try again.",
+              duration: 5000,
+            });
           }
         } else if (response.status === 401) {
-          alert("Authentication required. Please log in first.");
+          toast.error("Authentication required", {
+            description: "Please log in first.",
+            action: {
+              label: "Login",
+              onClick: () => window.location.href = '/login'
+            }
+          });
         } else {
-          alert("Failed to create event. Please try again.");
+          toast.error("Failed to create event", {
+            description: "Please try again later.",
+            duration: 5000,
+          });
         }
       }
     } catch (error) {
       console.error("Network error:", error);
-      alert("Network error. Please check your connection and try again.");
+      toast.error("Network error", {
+        description: "Please check your connection and try again.",
+        duration: 5000,
+      });
     } finally {
       setIsCreating(false); // Stop loading
     }
   };
 
   return (
-    <div className="w-full mx-4 max-w-5xl grid md:grid-cols-[1fr_1.5fr] gap-6 bg-gradient-to-b from-neutral-900 to-black mt-4 p-6 rounded-lg">
-      <EventImageUpload 
-        imageUrl={imageUrl}
-        onImageUpload={setImageUrl}
-      />
+    <div className="w-full mx-4 max-w-6xl">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden">
+        <div className="grid md:grid-cols-[1fr_1.5fr] gap-0">
+          {/* Left Column - Image Upload */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-6">
+            <EventImageUpload 
+              imageUrl={imageUrl}
+              onImageUpload={setImageUrl}
+            />
+          </div>
 
-      <div className="flex flex-col gap-5">
-        <EventBasicInfo
-          eventName={eventName}
-          visibility={visibility}
-          onEventNameChange={setEventName}
-          onVisibilityChange={setVisibility}
-        />
+          {/* Right Column - Form Content */}
+          <div className="p-8">
+            <div className="flex flex-col gap-8">
+              {/* Basic Information Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Basic Information
+                </h2>
+                <EventBasicInfo
+                  eventName={eventName}
+                  visibility={visibility}
+                  onEventNameChange={setEventName}
+                  onVisibilityChange={setVisibility}
+                />
+              </div>
 
-        <EventDateTimePicker
-          startDate={startDate}
-          startTime={startTime}
-          endDate={endDate}
-          endTime={endTime}
-          timezone={timezone}
-          onStartDateChange={handleStartDateChange}
-          onStartTimeChange={handleStartTimeChange}
-          onEndDateChange={(date) => {
-            if (date) setEndDate(date);
-          }}
-          onEndTimeChange={setEndTime}
-          onTimezoneChange={setTimezone}
-        />
+              {/* Date & Time Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Date & Time
+                </h2>
+                <EventDateTimePicker
+                  startDate={startDate}
+                  startTime={startTime}
+                  endDate={endDate}
+                  endTime={endTime}
+                  timezone={timezone}
+                  onStartDateChange={handleStartDateChange}
+                  onStartTimeChange={handleStartTimeChange}
+                  onEndDateChange={(date) => {
+                    if (date) setEndDate(date);
+                  }}
+                  onEndTimeChange={setEndTime}
+                  onTimezoneChange={setTimezone}
+                />
+              </div>
 
-        <LocationDialog
-          open={locationOpen}
-          onOpenChange={setLocationOpen}
-          onSave={handleLocationSave}
-          currentLocation={location}
-        />
+              {/* Location & Description Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Location & Description
+                </h2>
+                <div className="space-y-3">
+                  <LocationDialog
+                    open={locationOpen}
+                    onOpenChange={setLocationOpen}
+                    onSave={handleLocationSave}
+                    currentLocation={location}
+                  />
 
-        <DescriptionDialog
-          open={descriptionOpen}
-          onOpenChange={setDescriptionOpen}
-          description={description}
-          onDescriptionChange={setDescription}
-          onSave={handleDescriptionSave}
-        />
-        <TagsInput tags={tags} onTagsChange={setTags} />
+                  <DescriptionDialog
+                    open={descriptionOpen}
+                    onOpenChange={setDescriptionOpen}
+                    description={description}
+                    onDescriptionChange={setDescription}
+                    onSave={handleDescriptionSave}
+                  />
+                </div>
+              </div>
+
+              {/* Additional Details Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Additional Details
+                </h2>
+                <TagsInput tags={tags} onTagsChange={setTags} />
+              </div>
+
+              {/* Event Options Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Event Options
+                </h2>
 
         <EventOptions
           requireApproval={requireApproval}
@@ -355,19 +452,26 @@ export default function EventCreationForm() {
           onCapacityLimitChange={setCapacityLimit}
           onCapacitySave={handleCapacitySave}
         />
+              </div>
 
         <Button
           className={cn(
-            "w-full mt-4 rounded-md py-6",
+            "w-full mt-6 rounded-lg py-6 text-base font-semibold transition-all duration-200 flex items-center justify-center gap-2",
             isFormValid() && !isCreating
-              ? "bg-white text-black hover:bg-gray-200"
-              : "bg-gray-800 text-gray-400 cursor-not-allowed"
+              ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl"
+              : "bg-gray-700 text-gray-400 cursor-not-allowed"
           )}
           disabled={!isFormValid() || isCreating}
           onClick={handleCreateEvent}
         >
+          {isCreating && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          )}
           {isCreating ? "Creating Event..." : "Create Event"}
         </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

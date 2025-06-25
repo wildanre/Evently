@@ -76,11 +76,9 @@ export function EventDateTimePicker({
 }: EventDateTimePickerProps) {
   return (
     <div className="space-y-4">
-      <p className="text-sm font-medium text-white">Date and Time</p>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="start-date" className="text-white">
+          <Label htmlFor="start-date" className="text-gray-700 dark:text-white">
             Start Date
           </Label>
           <Popover>
@@ -88,11 +86,11 @@ export function EventDateTimePicker({
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-full justify-start text-left font-normal bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700",
+                  "w-full justify-start text-left font-normal bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700",
                   !startDate && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4 text-blue-600" />
                 {startDate ? (
                   format(startDate, "PPP")
                 ) : (
@@ -101,7 +99,7 @@ export function EventDateTimePicker({
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-auto p-0 bg-neutral-900 border-neutral-700"
+              className="w-auto p-0 bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700"
               align="start"
             >
               <Calendar
@@ -110,24 +108,24 @@ export function EventDateTimePicker({
                 onSelect={onStartDateChange}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
-                className="bg-neutral-900 text-white"
+                className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white"
               />
             </PopoverContent>
           </Popover>
         </div>
 
         <div>
-          <Label htmlFor="start-time" className="text-white">
+          <Label htmlFor="start-time" className="text-gray-700 dark:text-white">
             Start Time
           </Label>
           <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600" />
             <Input
               type="time"
               id="start-time"
               value={startTime}
               onChange={(e) => onStartTimeChange(e.target.value)}
-              className="bg-[#1a1a2e] border-gray-700 text-white pl-10"
+              className="bg-gray-50 dark:bg-[#1a1a2e] border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white pl-10"
             />
           </div>
         </div>
@@ -135,7 +133,7 @@ export function EventDateTimePicker({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="end-date" className="text-white">
+          <Label htmlFor="end-date" className="text-gray-700 dark:text-white">
             End Date
           </Label>
           <Popover>
@@ -143,16 +141,16 @@ export function EventDateTimePicker({
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-full justify-start text-left font-normal bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700",
+                  "w-full justify-start text-left font-normal bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700",
                   !endDate && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4 text-blue-600" />
                 {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-auto p-0 bg-neutral-900 border-neutral-700"
+              className="w-auto p-0 bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700"
               align="start"
             >
               <Calendar
@@ -161,35 +159,35 @@ export function EventDateTimePicker({
                 onSelect={onEndDateChange}
                 disabled={(date) => date < startDate}
                 initialFocus
-                className="bg-neutral-900 text-white"
+                className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white"
               />
             </PopoverContent>
           </Popover>
         </div>
 
         <div>
-          <Label htmlFor="end-time" className="text-white">
+          <Label htmlFor="end-time" className="text-gray-700 dark:text-white">
             End Time
           </Label>
           <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600" />
             <Input
               type="time"
               id="end-time"
               value={endTime}
               onChange={(e) => onEndTimeChange(e.target.value)}
-              className="bg-[#1a1a2e] border-gray-700 text-white pl-10"
+              className="bg-gray-50 dark:bg-[#1a1a2e] border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white pl-10"
             />
           </div>
         </div>
       </div>
 
       <div>
-        <Label htmlFor="timezone" className="text-white">
+        <Label htmlFor="timezone" className="text-gray-700 dark:text-white">
           Timezone
         </Label>
         <Select value={timezone} onValueChange={onTimezoneChange}>
-          <SelectTrigger className="w-full bg-neutral-800 border-neutral-700">
+          <SelectTrigger className="w-full bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-neutral-700">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

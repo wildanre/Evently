@@ -44,10 +44,10 @@ export function CapacityDialog({
   };
 
   return (
-    <div className="flex items-center justify-between bg-[#1a1a2e] rounded-md p-3">
+    <div className="flex items-center justify-between bg-gray-50 dark:bg-[#1a1a2e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-3">
-        <Users className="h-5 w-5 text-gray-400" />
-        <span className="text-white">Capacity</span>
+        <Users className="h-5 w-5 text-blue-600" />
+        <span className="text-gray-900 dark:text-white font-medium">Capacity</span>
       </div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
@@ -137,7 +137,9 @@ export function CapacityDialog({
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit">Save Capacity</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Save Capacity
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

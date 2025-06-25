@@ -7,11 +7,23 @@ import {
   CreateEventData, 
   UpdateEventData, 
   EventFilters,
-  PaginationResponse 
+  PaginationResponse,
+  NotificationType 
 } from '../types';
 import { NotificationService } from '../utils/notificationService';
 
 const router: express.Router = express.Router();
+
+// Helper function to determine event status
+function getEventStatus(startDate: Date, endDate: Date): 'upcoming' | 'ongoing' | 'past' {
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (now < start) return 'upcoming';
+  if (now >= start && now <= end) return 'ongoing';
+  return 'past';
+}
 
 /**
  * @swagger
@@ -91,14 +103,29 @@ router.get('/', [
           users: {
             select: { id: true, name: true, email: true }
           },
+          event_participants_event_participants_eventIdToevents: {
+            include: {
+              users: {
+                select: { id: true, name: true, email: true }
+              }
+            }
+          },
           _count: { select: { event_participants_event_participants_eventIdToevents: true } }
         }
       }),
       prisma.events.count({ where })
     ]);
 
+    // Transform events to include organizer and participants in a cleaner format
+    const transformedEvents = events.map(event => ({
+      ...event,
+      organizer: event.users,
+      participants: event.event_participants_event_participants_eventIdToevents,
+      attendeeCount: event._count.event_participants_event_participants_eventIdToevents
+    }));
+
     res.json({
-      events,
+      events: transformedEvents,
       pagination: {
         page,
         limit,
@@ -631,6 +658,392 @@ router.delete('/:id/register', authenticateToken, async (req, res) => {
     res.json({ message: 'Successfully unregistered from event' });
   } catch (error) {
     console.error('Unregister from event error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/events/my-joined:
+ *   get:
+ *     summary: Get events the current user has joined
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of events user has joined
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const userEvents = await prisma.event_participants.findMany({
+      where: { 
+        userId,
+        status: 'confirmed' // Only show confirmed registrations
+      },
+      include: {
+        events_event_participants_eventIdToevents: {
+          include: {
+            users: {
+              select: { name: true }
+            },
+            _count: {
+              select: { 
+                event_participants_event_participants_eventIdToevents: {
+                  where: { status: 'confirmed' }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { registeredAt: 'desc' }
+    });
+
+    const events = userEvents.map(participant => ({
+      id: participant.events_event_participants_eventIdToevents.id,
+      name: participant.events_event_participants_eventIdToevents.name,
+      description: participant.events_event_participants_eventIdToevents.description,
+      location: participant.events_event_participants_eventIdToevents.location,
+      startDate: participant.events_event_participants_eventIdToevents.startDate,
+      endDate: participant.events_event_participants_eventIdToevents.endDate,
+      imageUrl: participant.events_event_participants_eventIdToevents.imageUrl,
+      tags: participant.events_event_participants_eventIdToevents.tags,
+      capacity: participant.events_event_participants_eventIdToevents.capacity,
+      attendeesCount: participant.events_event_participants_eventIdToevents._count.event_participants_event_participants_eventIdToevents,
+      organizerName: participant.events_event_participants_eventIdToevents.users.name,
+      status: getEventStatus(participant.events_event_participants_eventIdToevents.startDate, participant.events_event_participants_eventIdToevents.endDate)
+    }));
+
+    res.json(events);
+  } catch (error) {
+    console.error('Get my joined events error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/events/my-created:
+ *   get:
+ *     summary: Get events created by the current user
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of events created by user
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/my-created', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const createdEvents = await prisma.events.findMany({
+      where: { organizerId: userId },
+      include: {
+        users: {
+          select: { name: true }
+        },
+        _count: {
+          select: { 
+            event_participants_event_participants_eventIdToevents: {
+              where: { status: 'confirmed' }
+            }
+          }
+        },
+        event_participants_event_participants_eventIdToevents: {
+          where: { status: 'pending' },
+          select: { id: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const events = createdEvents.map(event => ({
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      location: event.location,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      imageUrl: event.imageUrl,
+      tags: event.tags,
+      capacity: event.capacity,
+      attendeesCount: event._count.event_participants_event_participants_eventIdToevents,
+      pendingCount: event.event_participants_event_participants_eventIdToevents.length,
+      requireApproval: event.requireApproval,
+      visibility: event.visibility,
+      status: getEventStatus(event.startDate, event.endDate)
+    }));
+
+    res.json(events);
+  } catch (error) {
+    console.error('Get my created events error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/events/{id}/attendees:
+ *   get:
+ *     summary: Get attendees for an event (only for event organizer)
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: List of event attendees
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not the event organizer
+ *       404:
+ *         description: Event not found
+ */
+router.get('/:id/attendees', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is the organizer of this event
+    const event = await prisma.events.findUnique({
+      where: { id },
+      select: { organizerId: true }
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    if (event.organizerId !== userId) {
+      return res.status(403).json({ error: 'Only event organizer can view attendees' });
+    }
+
+    const attendees = await prisma.event_participants.findMany({
+      where: { eventId: id },
+      include: {
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { registeredAt: 'desc' }
+    });
+
+    const formattedAttendees = attendees.map(participant => ({
+      id: participant.users.id,
+      name: participant.users.name,
+      email: participant.users.email,
+      status: participant.status,
+      joinedAt: participant.registeredAt
+    }));
+
+    res.json(formattedAttendees);
+  } catch (error) {
+    console.error('Get event attendees error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/events/{id}/attendees/{attendeeId}/approve:
+ *   post:
+ *     summary: Approve an attendee registration
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *       - in: path
+ *         name: attendeeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Attendee User ID
+ *     responses:
+ *       200:
+ *         description: Attendee approved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not the event organizer
+ *       404:
+ *         description: Event or attendee not found
+ */
+router.post('/:id/attendees/:attendeeId/approve', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { id, attendeeId } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is the organizer of this event
+    const event = await prisma.events.findUnique({
+      where: { id },
+      select: { organizerId: true, name: true }
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    if (event.organizerId !== userId) {
+      return res.status(403).json({ error: 'Only event organizer can approve attendees' });
+    }
+
+    // Update attendee status
+    const participant = await prisma.event_participants.update({
+      where: {
+        eventId_userId: {
+          eventId: id,
+          userId: attendeeId
+        }
+      },
+      data: { status: 'confirmed' },
+      include: {
+        users: {
+          select: { name: true, email: true }
+        }
+      }
+    });
+
+    // Update attendee count
+    await prisma.events.update({
+      where: { id },
+      data: { attendeeCount: { increment: 1 } }
+    });
+
+    // Send notification to the user
+    await NotificationService.createNotification({
+      userId: attendeeId,
+      type: NotificationType.REGISTRATION_APPROVED,
+      title: 'Registration Approved',
+      message: `Your registration for "${event.name}" has been approved!`,
+      eventId: id
+    });
+
+    res.json({ 
+      message: 'Attendee approved successfully',
+      attendee: {
+        id: attendeeId,
+        name: participant.users.name,
+        email: participant.users.email,
+        status: participant.status
+      }
+    });
+  } catch (error) {
+    console.error('Approve attendee error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/events/{id}/attendees/{attendeeId}/reject:
+ *   post:
+ *     summary: Reject an attendee registration
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *       - in: path
+ *         name: attendeeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Attendee User ID
+ *     responses:
+ *       200:
+ *         description: Attendee rejected successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not the event organizer
+ *       404:
+ *         description: Event or attendee not found
+ */
+router.post('/:id/attendees/:attendeeId/reject', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { id, attendeeId } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is the organizer of this event
+    const event = await prisma.events.findUnique({
+      where: { id },
+      select: { organizerId: true, name: true }
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    if (event.organizerId !== userId) {
+      return res.status(403).json({ error: 'Only event organizer can reject attendees' });
+    }
+
+    // Update attendee status
+    const participant = await prisma.event_participants.update({
+      where: {
+        eventId_userId: {
+          eventId: id,
+          userId: attendeeId
+        }
+      },
+      data: { status: 'rejected' },
+      include: {
+        users: {
+          select: { name: true, email: true }
+        }
+      }
+    });
+
+    // Send notification to the user
+    await NotificationService.createNotification({
+      userId: attendeeId,
+      type: NotificationType.REGISTRATION_REJECTED,
+      title: 'Registration Rejected',
+      message: `Your registration for "${event.name}" has been rejected.`,
+      eventId: id
+    });
+
+    res.json({ 
+      message: 'Attendee rejected successfully',
+      attendee: {
+        id: attendeeId,
+        name: participant.users.name,
+        email: participant.users.email,
+        status: participant.status
+      }
+    });
+  } catch (error) {
+    console.error('Reject attendee error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

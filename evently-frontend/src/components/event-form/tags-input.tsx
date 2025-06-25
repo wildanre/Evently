@@ -36,10 +36,10 @@ export function TagsInput({ tags, onTagsChange }: TagsInputProps) {
   }
 
   return (
-    <div className="space-y-3 bg-[#1a1a2e] rounded-md p-3">
+    <div className="space-y-3 bg-gray-50 dark:bg-[#1a1a2e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-3">
-        <Tag className="h-5 w-5 text-gray-400" />
-        <Label className="text-white font-medium">Event Tags</Label>
+        <Tag className="h-5 w-5 text-blue-600" />
+        <Label className="text-gray-900 dark:text-white font-medium">Event Tags</Label>
       </div>
 
       <div className="space-y-3">

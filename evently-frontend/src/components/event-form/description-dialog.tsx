@@ -39,13 +39,13 @@ export function DescriptionDialog({
   };
 
   return (
-    <div className="flex items-center gap-3 bg-[#1a1a2e] rounded-md p-3">
-      <Edit className="h-5 w-5 text-gray-400" />
+    <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#1a1a2e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      <Edit className="h-5 w-5 text-blue-600" />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <Button
             variant="ghost"
-            className="w-full text-left justify-start p-0 h-auto text-white hover:bg-transparent"
+            className="w-full text-left justify-start p-0 h-auto text-gray-900 dark:text-white hover:bg-transparent"
           >
             <div className="flex-1">
               <p className="text-sm font-medium">
@@ -56,7 +56,7 @@ export function DescriptionDialog({
                   {description.substring(0, 50)}...
                 </p>
               ) : (
-                <p className="text-xs text-red-400 mt-1">
+                <p className="text-xs text-red-500 mt-1">
                   Description is required
                 </p>
               )}
@@ -95,7 +95,9 @@ export function DescriptionDialog({
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit">Save Description</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Save Description
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

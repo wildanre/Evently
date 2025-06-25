@@ -9,6 +9,7 @@ import { LocationDialog } from "./location-dialog";
 import { DescriptionDialog } from "./description-dialog";
 import { EventOptions } from "./event-options";
 import { EventDateTimePicker } from "@/components/date-time";
+import { TagsInput } from "./tags-input";
 
 export default function EventCreationForm() {
   // Basic event info
@@ -39,6 +40,7 @@ export default function EventCreationForm() {
   const [capacity, setCapacity] = useState("unlimited");
   const [capacityLimit, setCapacityLimit] = useState("");
   const [capacityOpen, setCapacityOpen] = useState(false);
+    const [tags, setTags] = useState<string[]>([]) 
 
   const handleLocationSave = (locationData: any) => {
     console.log("Location saved:", locationData);
@@ -74,6 +76,7 @@ export default function EventCreationForm() {
       ticketPrice,
       capacity,
       capacityLimit,
+       tags,
     };
     console.log("Creating event:", eventData);
   };
@@ -120,6 +123,7 @@ export default function EventCreationForm() {
           onDescriptionChange={setDescription}
           onSave={handleDescriptionSave}
         />
+        <TagsInput tags={tags} onTagsChange={setTags} />
 
         <EventOptions
           requireApproval={requireApproval}

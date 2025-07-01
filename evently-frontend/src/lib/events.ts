@@ -14,7 +14,11 @@ export interface Event {
   attendeeCount: number;
   startDate: string;
   endDate: string;
+  registrationStartDate: string;
+  registrationEndDate?: string;
   organizerId: string;
+  feedbackCount: number;
+  feedbackAverageRating: number;
   createdAt: string;
   updatedAt: string;
   users: {
@@ -168,6 +172,17 @@ export async function getUpcomingEvents(limit = 4): Promise<Event[]> {
   return data.events;
 }
 
+export async function getAllEvents(): Promise<Event[]> {
+  const response = await fetch(`${API_BASE_URL}/events`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch all events');
+  }
+  
+  const data = await response.json();
+  return data.events;
+}
+
 export async function getEventCategories(): Promise<EventCategory[]> {
   const categories = [
     { id: 'technology', name: 'Technology', icon: 'Code', color: 'bg-blue-500' },
@@ -196,5 +211,48 @@ export async function getEventCategories(): Promise<EventCategory[]> {
   );
 
   return categoriesWithCounts;
+}
+
+export interface CreateEventData {
+  name: string;
+  description?: string;
+  location?: string;
+  startDate: string;
+  endDate: string;
+  visibility?: boolean;
+  requireApproval?: boolean;
+  capacity?: number;
+  tags?: string[];
+  imageUrl?: string;
+}
+
+export async function createEvent(eventData: CreateEventData): Promise<Event> {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('You must be logged in to create an event. Please log in and try again.');
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/events`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(eventData),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    
+    try {
+      const error = JSON.parse(errorText);
+      throw new Error(error.error || 'Failed to create event');
+    } catch (parseError) {
+      throw new Error(`Failed to create event: ${response.status} ${response.statusText}`);
+    }
+  }
+  
+  return response.json();
 }
 

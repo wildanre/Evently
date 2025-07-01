@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { CalendarDays, MapPin, Users, Search, Filter, X, Sun, Moon, Grid3X3, List, RefreshCw, AlertCircle, ChevronRight, Briefcase, Code, Palette, Music, Heart, Gamepad2, BookOpen, Coffee, Zap, TrendingUp, Navigation } from 'lucide-react';
-import { getEvents, Event, EventsResponse, getEventCategories, getFeaturedEvents, getUpcomingEvents, getEventsByCategory, EventCategory } from '@/lib/events';
+import { getEvents, Event, EventsResponse, getEventCategories, getFeaturedEvents, getUpcomingEvents, getEventsByCategory, EventCategory, getAllEvents } from '@/lib/events';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import Marquee from "react-fast-marquee";
 
 type ViewMode = 'grid' | 'list';
 
@@ -45,11 +46,11 @@ const SimpleEventCard = ({ event, onClick }: { event: Event, onClick?: () => voi
   <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border cursor-pointer" onClick={onClick}>
     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
       <img
-        src={event.imageUrl || "/api/placeholder/400/300"}
+        src={event.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop"}
         alt={event.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         onError={(e) => {
-          e.currentTarget.src = "/api/placeholder/400/300";
+          e.currentTarget.src = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop";
         }}
       />
       {event.tags.length > 0 && (
@@ -251,6 +252,36 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-900 to-black text-white">
       <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Search Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4">Discover Events</h1>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search events..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="pl-10 bg-muted/50 border-border dark:border-gray-700 text-foreground dark:text-white"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Button onClick={handleSearch} className="sm:w-auto">
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+          </div>
+        </div>
         {!showAllEvents ? (
           <>
             {discoverLoading ? (
@@ -366,21 +397,6 @@ export default function DiscoverPage() {
                       View all <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
-                  {upcomingEvents.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                      {upcomingEvents.map((event) => (
-                        <SimpleEventCard
-                          key={event.id}
-                          event={event}
-                          onClick={() => navigateToEvent(event.id)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No upcoming events available</p>
-                    </div>
-                  )}
                 </section>
               </>
             )}
@@ -431,7 +447,7 @@ export default function DiscoverPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex border rounded-lg p-1 bg-muted/50">
+                <div className="flex border rounded-lg bg-muted/50">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
@@ -447,6 +463,13 @@ export default function DiscoverPage() {
                     className="h-8 px-3"
                   >
                     <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                    variant="ghost"
+                    className="h-8 px-3"
+                  >
+                    <RefreshCw className="h-4 w-4" />
                   </Button>
                 </div>
                 <Button variant="outline" className="border-border dark:border-gray-700">

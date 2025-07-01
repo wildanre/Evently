@@ -22,6 +22,12 @@ interface EventOptionsProps {
   onCapacityChange: (capacity: string) => void;
   onCapacityLimitChange: (limit: string) => void;
   onCapacitySave: (data: { capacity: string; limit: string }) => void;
+  isFeatured?: boolean;
+  onIsFeaturedChange?: (value: boolean) => void;
+  isOnline?: boolean;
+  onIsOnlineChange?: (value: boolean) => void;
+  meetingUrl?: string;
+  onMeetingUrlChange?: (url: string) => void;
 }
 
 export function EventOptions({
@@ -41,6 +47,12 @@ export function EventOptions({
   onCapacityChange,
   onCapacityLimitChange,
   onCapacitySave,
+  isFeatured = false,
+  onIsFeaturedChange,
+  isOnline = false,
+  onIsOnlineChange,
+  meetingUrl = '',
+  onMeetingUrlChange,
 }: EventOptionsProps) {
   return (
     <div className="space-y-4">
@@ -66,6 +78,39 @@ export function EventOptions({
           onCheckedChange={onRequireApprovalChange}
         />
       </div>
+      
+      {onIsFeaturedChange && (
+        <div className="flex items-center justify-between bg-[#1a1a2e] rounded-md p-3">
+          <span className="text-white">Featured Event</span>
+          <Switch
+            checked={isFeatured}
+            onCheckedChange={onIsFeaturedChange}
+          />
+        </div>
+      )}
+      
+      {onIsOnlineChange && (
+        <div className="flex items-center justify-between bg-[#1a1a2e] rounded-md p-3">
+          <span className="text-white">Online Event</span>
+          <Switch
+            checked={isOnline}
+            onCheckedChange={onIsOnlineChange}
+          />
+        </div>
+      )}
+      
+      {isOnline && onMeetingUrlChange && (
+        <div className="bg-[#1a1a2e] rounded-md p-3">
+          <label className="block text-sm font-medium text-white mb-2">Meeting URL</label>
+          <input
+            type="text"
+            value={meetingUrl}
+            onChange={(e) => onMeetingUrlChange(e.target.value)}
+            className="w-full bg-[#2a2a3e] border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400"
+            placeholder="https://..."
+          />
+        </div>
+      )}
 
       <CapacityDialog
         open={capacityOpen}

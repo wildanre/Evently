@@ -18,7 +18,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { MapPin, Link } from "lucide-react";
+import { MapPin, Link, Map } from "lucide-react";
+import dynamic from 'next/dynamic';
+
+// Dynamically import the MapLocationPicker to avoid SSR issues
+const MapLocationPicker = dynamic(
+  () => import('./map-location-picker'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-800 rounded-lg flex items-center justify-center"><p className="text-gray-400">Loading map...</p></div> }
+);
 
 interface LocationDialogProps {
   open: boolean;
@@ -31,15 +38,34 @@ export function LocationDialog({
   onOpenChange,
   onSave,
 }: LocationDialogProps) {
-  const [locationType, setLocationType] = useState("offline");
+  const [inputMethod, setInputMethod] = useState<'manual' | 'map'>('manual');
+  const [selectedMapLocation, setSelectedMapLocation] = useState<any>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const locationData = {
-      type: locationType,
-      ...Object.fromEntries(formData.entries()),
-    };
+    
+    let locationData;
+    
+    if (inputMethod === 'map' && selectedMapLocation) {
+      // Use map selected location
+      locationData = {
+        type: 'offline',
+        venueName: selectedMapLocation.displayName || 'Selected Location',
+        address: selectedMapLocation.address || selectedMapLocation.displayName,
+        latitude: selectedMapLocation.lat,
+        longitude: selectedMapLocation.lng,
+        city: '', // Could be parsed from address if needed
+        postalCode: ''
+      };
+    } else {
+      // Use manual form data
+      const formData = new FormData(e.target as HTMLFormElement);
+      locationData = {
+        type: 'offline',
+        ...Object.fromEntries(formData.entries()),
+      };
+    }
+    
     onSave(locationData);
     onOpenChange(false);
   };
@@ -57,7 +83,7 @@ export function LocationDialog({
               <div>
                 <p className="text-sm font-medium">Add Event Location</p>
                 <p className="text-xs text-gray-500">
-                  Offline location or virtual link
+                  Event location or venue
                 </p>
               </div>
             </div>
@@ -68,142 +94,99 @@ export function LocationDialog({
           <DialogHeader>
             <DialogTitle className="text-white">Add Event Location</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Choose between an offline venue or virtual meeting link for your
-              event.
+              Add the venue or location where your event will take place.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <RadioGroup
-              value={locationType}
-              onValueChange={setLocationType}
-              className="grid grid-cols-2 gap-4"
-            >
-              <div className="flex items-center space-x-2 border border-neutral-700 rounded-lg p-3">
-                <RadioGroupItem value="offline" id="offline" />
-                <Label
-                  htmlFor="offline"
-                  className="flex items-center gap-2 cursor-pointer text-white"
-                >
-                  <MapPin className="h-4 w-4" />
-                  Offline
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 border border-neutral-700 rounded-lg p-3">
-                <RadioGroupItem value="virtual" id="virtual" />
-                <Label
-                  htmlFor="virtual"
-                  className="flex items-center gap-2 cursor-pointer text-white"
-                >
-                  <Link className="h-4 w-4" />
-                  Virtual
-                </Label>
-              </div>
-            </RadioGroup>
 
-            {locationType === "offline" ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
+              {/* Input Method Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  variant={inputMethod === 'manual' ? 'default' : 'outline'}
+                  onClick={() => setInputMethod('manual')}
+                  className="w-full"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Manual Entry
+                </Button>
+                <Button
+                  type="button"
+                  variant={inputMethod === 'map' ? 'default' : 'outline'}
+                  onClick={() => setInputMethod('map')}
+                  className="w-full"
+                >
+                  <Map className="h-4 w-4 mr-2" />
+                  Select on Map
+                </Button>
+              </div>
+              
+              {inputMethod === 'manual' ? (
+                <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="venue-name" className="text-white">
+                  Venue Name
+                </Label>
+                <Input
+                  id="venue-name"
+                  name="venueName"
+                  placeholder="Enter venue name"
+                  className="bg-[#1a1a2e] border-gray-700 text-white"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-white">
+                  Address
+                </Label>
+                <Textarea
+                  id="address"
+                  name="address"
+                  placeholder="Enter full address"
+                  className="min-h-[80px] resize-none bg-[#1a1a2e] border-gray-700 text-white"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="venue-name" className="text-white">
-                    Venue Name
+                  <Label htmlFor="city" className="text-white">
+                    City
                   </Label>
                   <Input
-                    id="venue-name"
-                    name="venueName"
-                    placeholder="Enter venue name"
+                    id="city"
+                    name="city"
+                    placeholder="City"
                     className="bg-[#1a1a2e] border-gray-700 text-white"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="text-white">
-                    Address
+                  <Label htmlFor="postal-code" className="text-white">
+                    Postal Code
                   </Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    placeholder="Enter full address"
-                    className="min-h-[80px] resize-none bg-[#1a1a2e] border-gray-700 text-white"
-                    required
+                  <Input
+                    id="postal-code"
+                    name="postalCode"
+                    placeholder="Postal code"
+                    className="bg-[#1a1a2e] border-gray-700 text-white"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city" className="text-white">
-                      City
-                    </Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      placeholder="City"
-                      className="bg-[#1a1a2e] border-gray-700 text-white"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postal-code" className="text-white">
-                      Postal Code
-                    </Label>
-                    <Input
-                      id="postal-code"
-                      name="postalCode"
-                      placeholder="Postal code"
-                      className="bg-[#1a1a2e] border-gray-700 text-white"
-                    />
-                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="meeting-platform" className="text-white">
-                    Meeting Platform
-                  </Label>
-                  <Input
-                    id="meeting-platform"
-                    name="meetingPlatform"
-                    placeholder="e.g., Zoom, Google Meet, Teams"
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                    required
+              ) : (
+                <div className="space-y-4">
+                  <MapLocationPicker
+                    onLocationSelect={(location) => {
+                      console.log('Selected location:', location);
+                      setSelectedMapLocation(location);
+                    }}
+                    className=""
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="meeting-link" className="text-white">
-                    Meeting Link
-                  </Label>
-                  <Input
-                    id="meeting-link"
-                    name="meetingLink"
-                    type="url"
-                    placeholder="https://..."
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="meeting-id" className="text-white">
-                    Meeting ID (Optional)
-                  </Label>
-                  <Input
-                    id="meeting-id"
-                    name="meetingId"
-                    placeholder="Meeting ID or Room Number"
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="passcode" className="text-white">
-                    Passcode (Optional)
-                  </Label>
-                  <Input
-                    id="passcode"
-                    name="passcode"
-                    placeholder="Meeting passcode"
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                  />
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <DialogFooter className="gap-2">
               <DialogClose asChild>

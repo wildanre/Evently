@@ -10,18 +10,26 @@ import { DescriptionDialog } from "./description-dialog";
 import { EventOptions } from "./event-options";
 import { EventDateTimePicker } from "@/components/date-time";
 import { TagsInput } from "./tags-input";
+import { createEvent, CreateEventData } from "@/lib/events";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function EventCreationForm() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  
   // Basic event info
   const [eventName, setEventName] = useState("");
   const [visibility, setVisibility] = useState("public");
+  const [location, setLocation] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   // Date and time
   const [startDate, setStartDate] = useState<Date>(
-    new Date("2024-06-16T17:30")
+    new Date("2025-07-01T17:30")
   );
   const [startTime, setStartTime] = useState("17:30");
-  const [endDate, setEndDate] = useState<Date>(new Date("2024-06-16T18:30"));
+  const [endDate, setEndDate] = useState<Date>(new Date("2025-07-01T18:30"));
   const [endTime, setEndTime] = useState("18:30");
   const [timezone, setTimezone] = useState("GMT+07:00");
 
@@ -40,14 +48,34 @@ export default function EventCreationForm() {
   const [capacity, setCapacity] = useState("unlimited");
   const [capacityLimit, setCapacityLimit] = useState("");
   const [capacityOpen, setCapacityOpen] = useState(false);
-    const [tags, setTags] = useState<string[]>([]) 
+  const [tags, setTags] = useState<string[]>([]);
 
   const handleLocationSave = (locationData: any) => {
-    console.log("Location saved:", locationData);
+    // Convert location object to a readable string
+    let locationString = '';
+    
+    const parts = [];
+    
+    // Check if it's from map selection (has latitude/longitude)
+    if (locationData.latitude && locationData.longitude) {
+      // Map-selected location
+      locationString = locationData.address || locationData.venueName || 'Selected Location';
+    } else {
+      // Manual entry
+      if (locationData.venueName) parts.push(locationData.venueName);
+      if (locationData.address) parts.push(locationData.address);
+      if (locationData.city) parts.push(locationData.city);
+      if (locationData.postalCode) parts.push(locationData.postalCode);
+      locationString = parts.join(', ');
+    }
+    
+    setLocation(locationString);
+    setLocationOpen(false);
   };
 
   const handleDescriptionSave = (desc: string) => {
-    console.log("Description saved:", desc);
+    setDescription(desc);
+    setDescriptionOpen(false);
   };
 
   const handleTicketsSave = (ticketData: { type: string; price: string }) => {
@@ -61,24 +89,48 @@ export default function EventCreationForm() {
     console.log("Capacity saved:", capacityData);
   };
 
-  const handleCreateEvent = () => {
-    const eventData = {
-      name: eventName,
-      visibility,
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      timezone,
-      description,
-      requireApproval,
-      ticketType,
-      ticketPrice,
-      capacity,
-      capacityLimit,
-       tags,
-    };
-    console.log("Creating event:", eventData);
+  const handleCreateEvent = async () => {
+    if (!eventName.trim()) {
+      toast.error("Event name is required");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Combine date and time for proper ISO string
+      const combinedStartDate = new Date(startDate);
+      const [startHour, startMinute] = startTime.split(':');
+      combinedStartDate.setHours(parseInt(startHour), parseInt(startMinute));
+      
+      const combinedEndDate = new Date(endDate);
+      const [endHour, endMinute] = endTime.split(':');
+      combinedEndDate.setHours(parseInt(endHour), parseInt(endMinute));
+
+      const eventData: CreateEventData = {
+        name: eventName,
+        description: description || undefined,
+        location: location || undefined,
+        startDate: combinedStartDate.toISOString(),
+        endDate: combinedEndDate.toISOString(),
+        visibility: visibility === "public",
+        requireApproval,
+        capacity: capacity === "unlimited" ? undefined : parseInt(capacityLimit) || undefined,
+        tags,
+        imageUrl: imageUrl || undefined,
+      };
+
+      const createdEvent = await createEvent(eventData);
+      toast.success("Event created successfully!");
+      
+      // Redirect to the created event or events page
+      router.push(`/events`);
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create event');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -147,14 +199,14 @@ export default function EventCreationForm() {
         <Button
           className={cn(
             "w-full mt-4 rounded-md py-6",
-            eventName
+            eventName && !isLoading
               ? "bg-white text-black hover:bg-gray-200"
               : "bg-gray-800 text-gray-400"
           )}
-          disabled={!eventName}
+          disabled={!eventName || isLoading}
           onClick={handleCreateEvent}
         >
-          Create Event
+          {isLoading ? "Creating Event..." : "Create Event"}
         </Button>
       </div>
     </div>

@@ -40,8 +40,9 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-const useMapEvents = dynamic(
-  () => import('react-leaflet').then((mod) => mod.useMapEvents),
+// Dynamic import wrapper for useMapEvents
+const MapEventsHandler = dynamic(
+  () => import('./map-events-handler'),
   { ssr: false }
 );
 
@@ -300,49 +301,41 @@ const fetchAddressFromCoordinates = async (lat: number, lon: number) => {
     return parts.join(', ');
   };
 
-// Map click handler component using useMapEvents
-  const MapClickHandler = () => {
-    const map = useMapEvents({
-      click: async (e) => {
-        const { lat, lng } = e.latlng;
+// Map click handler functions
+  const handleMapClick = async (lat: number, lng: number) => {
+    try {
+      const data = await fetchAddressFromCoordinates(lat, lng);
+      const location: Location = {
+        lat: parseFloat(data.lat),
+        lng: parseFloat(data.lon),
+        address: data.display_name,
+        displayName: data.display_name
+      };
+      setSelectedLocation(location);
+      onLocationSelect(location);
+      
+      // Fetch POIs around the clicked location
+      fetchPOIs(lat, lng, 1000, selectedCategory);
+    } catch (error) {
+      console.error('Error fetching address:', error);
+      // Fallback to clicked coordinates if reverse geocoding fails
+      const location: Location = {
+        lat,
+        lng,
+        address: `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        displayName: `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      };
+      setSelectedLocation(location);
+      onLocationSelect(location);
+      
+      // Still fetch POIs around the clicked location
+      fetchPOIs(lat, lng, 1000, selectedCategory);
+    }
+  };
 
-        try {
-          const data = await fetchAddressFromCoordinates(lat, lng);
-          const location: Location = {
-            lat: parseFloat(data.lat),
-            lng: parseFloat(data.lon),
-            address: data.display_name,
-            displayName: data.display_name
-          };
-          setSelectedLocation(location);
-          onLocationSelect(location);
-          
-          // Fetch POIs around the clicked location
-          fetchPOIs(lat, lng, 1000, selectedCategory);
-        } catch (error) {
-          console.error('Error fetching address:', error);
-          // Fallback to clicked coordinates if reverse geocoding fails
-          const location: Location = {
-            lat,
-            lng,
-            address: `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-            displayName: `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
-          };
-          setSelectedLocation(location);
-          onLocationSelect(location);
-          
-          // Still fetch POIs around the clicked location
-          fetchPOIs(lat, lng, 1000, selectedCategory);
-        }
-      },
-      moveend: (e) => {
-        const center = e.target.getCenter();
-        // Fetch POIs when map is moved
-        fetchPOIs(center.lat, center.lng, 2000, selectedCategory);
-      }
-    });
-
-    return null;
+  const handleMapMove = (lat: number, lng: number) => {
+    // Fetch POIs when map is moved
+    fetchPOIs(lat, lng, 2000, selectedCategory);
   };
 
   return (
@@ -504,7 +497,10 @@ const fetchAddressFromCoordinates = async (lat: number, lon: number) => {
               </Marker>
             ))}
             
-            <MapClickHandler />
+            <MapEventsHandler 
+              onMapClick={handleMapClick}
+              onMapMove={handleMapMove}
+            />
           </MapContainer>
         )}
       </div>

@@ -456,7 +456,7 @@ const EventSlider = ({ event, isOpen, onClose }: EventSliderProps) => {
                         {attendee.name}
                       </p>
                       {attendee.role !== 'Attendee' && (
-                        <Badge size="sm" className="text-xs mt-1">
+                        <Badge className="text-xs mt-1 px-1 py-0.5">
                           {attendee.role}
                         </Badge>
                       )}
@@ -501,7 +501,7 @@ const EventSlider = ({ event, isOpen, onClose }: EventSliderProps) => {
                     : 'bg-blue-600 hover:bg-blue-700'
                 } font-semibold`}
                 onClick={handleRegistration}
-                disabled={isRegistering || (eventDetails?.capacity && eventDetails.attendeeCount >= eventDetails.capacity)}
+                disabled={isRegistering || Boolean(eventDetails?.capacity && eventDetails.attendeeCount >= eventDetails.capacity)}
                 size="lg"
               >
                 {isRegistering && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

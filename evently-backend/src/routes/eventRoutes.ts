@@ -568,7 +568,6 @@ router.post('/', [
         name,
         description,
         location,
-        mapsLink,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         capacity,

@@ -79,26 +79,62 @@ export default function EditEventPage() {
       if (response.ok) {
         const event = await response.json();
         
-        // Populate form with existing data
-        setEventName(event.name);
+        // Populate form with existing data - add null checks
+        setEventName(event.name || "");
         setVisibility(event.visibility ? "public" : "private");
-        setDescription(event.description);
-        setLocation(event.location);
+        setDescription(event.description || "");
+        setLocation(event.location || "");
         setMapsLink(event.mapsLink || "");
         setTags(event.tags || []);
         setImageUrl(event.imageUrl || "");
-        setRequireApproval(event.requireApproval);
+        setRequireApproval(event.requireApproval || false);
         
-        // Set dates and times
-        const start = new Date(event.startDate);
-        const end = new Date(event.endDate);
-        setStartDate(start);
-        setEndDate(end);
-        setStartTime(`${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}`);
-        setEndTime(`${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`);
+        // Set dates and times with validation
+        let startDateSet = false;
+        let endDateSet = false;
+        
+        if (event.startDate) {
+          const start = new Date(event.startDate);
+          if (!isNaN(start.getTime())) {
+            setStartDate(start);
+            setStartTime(`${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}`);
+            startDateSet = true;
+          } else {
+            console.warn('Invalid start date:', event.startDate);
+          }
+        }
+        
+        if (event.endDate) {
+          const end = new Date(event.endDate);
+          if (!isNaN(end.getTime())) {
+            setEndDate(end);
+            setEndTime(`${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`);
+            endDateSet = true;
+          } else {
+            console.warn('Invalid end date:', event.endDate);
+          }
+        }
+        
+        // Set default dates if parsing failed
+        if (!startDateSet && !endDateSet) {
+          const now = new Date();
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          setStartDate(tomorrow);
+          setEndDate(tomorrow);
+          setStartTime("09:00");
+          setEndTime("10:00");
+        } else if (!endDateSet && startDateSet) {
+          // If only start date is valid, set end date to same day, 1 hour later
+          const endDate = new Date(startDate);
+          endDate.setHours(endDate.getHours() + 1);
+          setEndDate(endDate);
+          setEndTime(`${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`);
+        }
         
         // Set capacity
-        if (event.capacity) {
+        if (event.capacity && typeof event.capacity === 'number') {
           setCapacity("limited");
           setCapacityLimit(event.capacity.toString());
         } else {
@@ -158,9 +194,14 @@ export default function EditEventPage() {
   };
 
   const isFormValid = () => {
-    if (!eventName.trim()) return false;
-    if (!description.trim()) return false;
-    if (!location.trim()) return false;
+    if (!eventName || !eventName.trim()) return false;
+    if (!description || !description.trim()) return false;
+    if (!location || !location.trim()) return false;
+    
+    // Validate dates
+    if (!startDate || !endDate) return false;
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
+    
     if (startDate >= endDate) {
       if (startDate.toDateString() === endDate.toDateString()) {
         const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
@@ -175,11 +216,16 @@ export default function EditEventPage() {
 
   const getValidationErrors = () => {
     const errors = [];
-    if (!eventName.trim()) errors.push("Event name");
-    if (!description.trim()) errors.push("Description");
-    if (!location.trim()) errors.push("Location");
+    if (!eventName || !eventName.trim()) errors.push("Event name");
+    if (!description || !description.trim()) errors.push("Description");
+    if (!location || !location.trim()) errors.push("Location");
     
-    if (startDate >= endDate) {
+    // Validate dates
+    if (!startDate || !endDate) {
+      errors.push("Start and end dates");
+    } else if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      errors.push("Valid dates");
+    } else if (startDate >= endDate) {
       if (startDate.toDateString() === endDate.toDateString()) {
         const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
         const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
@@ -230,7 +276,16 @@ export default function EditEventPage() {
 
     setIsUpdating(true);
 
-    // Create ISO date strings for backend
+    // Create ISO date strings for backend with validation
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      toast.error("Invalid date values", {
+        description: "Please check your start and end dates",
+        duration: 5000,
+      });
+      setIsUpdating(false);
+      return;
+    }
+    
     const startDateTime = new Date(startDate);
     const [startHours, startMinutes] = startTime.split(':');
     startDateTime.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
@@ -239,20 +294,30 @@ export default function EditEventPage() {
     const [endHours, endMinutes] = endTime.split(':');
     endDateTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
 
+    // Validate the constructed dates
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      toast.error("Invalid date/time values", {
+        description: "Please check your date and time selections",
+        duration: 5000,
+      });
+      setIsUpdating(false);
+      return;
+    }
+
     const eventCapacity = capacity === "unlimited" ? null : parseInt(capacityLimit) || null;
 
     const eventPayload = {
-      name: eventName.trim(),
-      description: description.trim(),
-      location: location.trim(),
-      mapsLink: mapsLink.trim() || undefined, // Only send if provided
+      name: (eventName || "").trim(),
+      description: (description || "").trim(),
+      location: (location || "").trim(),
+      mapsLink: (mapsLink || "").trim() || undefined, // Only send if provided
       startDate: startDateTime.toISOString(),
       endDate: endDateTime.toISOString(),
       capacity: eventCapacity,
-      tags: tags.filter(tag => tag.trim() !== ""),
+      tags: (tags || []).filter(tag => tag && tag.trim() !== ""),
       visibility: visibility === "public",
       requireApproval: requireApproval,
-      imageUrl: imageUrl.trim() || ""
+      imageUrl: (imageUrl || "").trim() || ""
     };
     
     try {

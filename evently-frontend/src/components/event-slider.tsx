@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { JoinEventButton } from "@/components/join-event-button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { API_ENDPOINTS } from "@/lib/api";
 import dynamic from 'next/dynamic';
 
 import {
@@ -48,12 +50,14 @@ const Marker = dynamic(
 
 interface Event {
   id: string;
+  name?: string;
   date: string;
   day: string;
   time: string;
   title: string;
   organizers: string;
   location: string;
+  mapsLink?: string;
   attendees: number;
   imageUrl: string;
   going: boolean;
@@ -62,6 +66,10 @@ interface Event {
   description?: string;
   requireApproval?: boolean;
   participants?: any[];
+  tags?: string[];
+  capacity?: number;
+  status?: string;
+  attendeeCount?: number;
 }
 
 interface EventSliderProps {
@@ -72,35 +80,63 @@ interface EventSliderProps {
 }
 
 const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSliderProps) => {
+  const { isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [eventDetails, setEventDetails] = useState<any>(null);
   const [attendees, setAttendees] = useState<any[]>([]);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [joinStatus, setJoinStatus] = useState<'joined' | 'pending' | 'rejected' | 'not_joined'>('not_joined');
 
-  // Mock API functions - replace with real API calls
-  const getEvent = useCallback(async (eventId: string) => {
-    // Mock implementation - replace with real API call
-    return {
-      ...event,
-      attendeeCount: event?.attendees || 0,
-      status: 'upcoming',
-      tags: ['tech', 'networking'],
-      capacity: 100
-    };
-  }, [event]);
+  // Real API functions
+  const getEventDetails = useCallback(async (eventId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-  const registerForEvent = useCallback(async (eventId: string) => {
-    // Mock implementation - replace with real API call
-    console.log('Registering for event:', eventId);
+      const response = await fetch(`${API_ENDPOINTS.EVENTS}/${eventId}`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch event details');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+      throw error;
+    }
   }, []);
 
-  const unregisterFromEvent = useCallback(async (eventId: string) => {
-    // Mock implementation - replace with real API call
-    console.log('Unregistering from event:', eventId);
-  }, []);
+  const checkJoinStatus = useCallback(async (eventId: string) => {
+    if (!isAuthenticated || !user?.email) return 'not_joined';
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return 'not_joined';
+
+      const response = await fetch(`${API_ENDPOINTS.EVENTS}/${eventId}/join-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const statusData = await response.json();
+        return statusData.status || (statusData.isJoined ? 'joined' : 'not_joined');
+      }
+    } catch (error) {
+      console.error('Error checking join status:', error);
+    }
+    return 'not_joined';
+  }, [isAuthenticated, user?.email]);
 
   const generateMockAttendees = useCallback((count: number) => {
     return Array.from({ length: Math.min(count, 20) }, (_, i) => ({
@@ -116,16 +152,32 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     
     setLoading(true);
     try {
-      const details = await getEvent(event.id);
+      // Fetch real event details
+      const details = await getEventDetails(event.id);
       setEventDetails(details);
-      // Generate mock attendees for demo
-      setAttendees(generateMockAttendees(details.attendeeCount));
+      
+      // Check join status
+      const status = await checkJoinStatus(event.id);
+      setJoinStatus(status);
+      
+      // Generate mock attendees for demo (replace with real API call when available)
+      const attendeeCount = details.attendeeCount || details._count?.event_participants_event_participants_eventIdToevents || event.attendees || 0;
+      setAttendees(generateMockAttendees(attendeeCount));
     } catch (error) {
       console.error('Failed to fetch event details:', error);
+      // Fallback to using prop data
+      setEventDetails({
+        ...event,
+        attendeeCount: event.attendees,
+        status: 'upcoming',
+        tags: event.tags || [],
+        capacity: event.capacity || 100
+      });
+      setAttendees(generateMockAttendees(event.attendees));
     } finally {
       setLoading(false);
     }
-  }, [event, getEvent, generateMockAttendees]);
+  }, [event, getEventDetails, checkJoinStatus, generateMockAttendees]);
 
   useEffect(() => {
     if (isOpen && event) {
@@ -133,35 +185,17 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     }
   }, [isOpen, event, fetchEventDetails]);
 
-  // Return early AFTER all hooks are called
-  if (!event) return null;
-
-  const handleRegistration = async () => {
-    setIsRegistering(true);
-    try {
-      if (isRegistered) {
-        await unregisterFromEvent(event.id);
-        setIsRegistered(false);
-        toast.success("Successfully unregistered", {
-          description: "You have been removed from this event.",
-        });
-      } else {
-        await registerForEvent(event.id);
-        setIsRegistered(true);
-        toast.success("Successfully registered", {
-          description: "You're now registered for this event!",
-        });
-      }
-    } catch (error) {
-      toast.error("Registration failed", {
-        description: error instanceof Error ? error.message : "Something went wrong",
-      });
-    } finally {
-      setIsRegistering(false);
+  const handleJoinStatusChange = useCallback(() => {
+    if (onJoinStatusChange) {
+      onJoinStatusChange();
     }
-  };
+    // Refetch event details to update join status
+    fetchEventDetails();
+  }, [onJoinStatusChange, fetchEventDetails]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
+    if (!event) return;
+    
     const eventUrl = `${window.location.origin}/events/${event.id}`;
     const shareData = {
       title: event.title,
@@ -181,18 +215,20 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     } else {
       fallbackShare(eventUrl);
     }
-  };
+  }, [event]);
 
-  const fallbackShare = async (url: string) => {
+  const fallbackShare = useCallback(async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Event link copied to clipboard!");
     } catch (error) {
       toast.error("Failed to copy link");
     }
-  };
+  }, []);
 
-  const handleAddToCalendar = () => {
+  const handleAddToCalendar = useCallback(() => {
+    if (!event) return;
+    
     const startDate = new Date(eventDetails?.startDate || event.startDate || Date.now());
     const endDate = new Date(eventDetails?.endDate || event.endDate || startDate.getTime() + 2 * 60 * 60 * 1000);
     
@@ -205,9 +241,11 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     
     window.open(googleCalendarUrl.toString(), '_blank');
     toast.success("Opening Google Calendar...");
-  };
+  }, [event, eventDetails]);
 
-  const handleDownloadEvent = () => {
+  const handleDownloadEvent = useCallback(() => {
+    if (!event) return;
+    
     const eventData = {
       title: event.title,
       description: eventDetails?.description || event.description,
@@ -230,15 +268,18 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     
     URL.revokeObjectURL(url);
     toast.success("Event details downloaded!");
-  };
+  }, [event, eventDetails]);
 
-  const openLocationInMaps = () => {
-    const encodedLocation = encodeURIComponent(event.location);
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+  const openLocationInMaps = useCallback(() => {
+    if (!event) return;
+    
+    // Use custom mapsLink if available, otherwise generate one
+    const mapsUrl = event.mapsLink || eventDetails?.mapsLink || 
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
     window.open(mapsUrl, '_blank');
-  };
+  }, [event, eventDetails]);
 
-  const handleFavorite = () => {
+  const handleFavorite = useCallback(() => {
     setIsFavorited(!isFavorited);
     if (isFavorited) {
       toast.success("Removed from favorites", {
@@ -249,7 +290,10 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
         description: "Event added to your favorites!",
       });
     }
-  };
+  }, [isFavorited]);
+
+  // Return early AFTER all hooks are called
+  if (!event) return null;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -261,6 +305,14 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
               <Calendar className="h-5 w-5 text-neutral-400" />
               <span className="text-sm text-neutral-400">Event Details</span>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-neutral-400 hover:text-white hover:bg-neutral-800"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Add SheetTitle for accessibility */}
@@ -269,12 +321,30 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
           </SheetTitle>
 
           {/* Event Image */}
-          <div className="w-full h-64 overflow-hidden">
+          <div className="relative w-full h-64 overflow-hidden">
             <img
               src={event.imageUrl || "/placeholder.svg"}
               alt={event.title}
               className="w-full h-full object-cover"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            {/* Status Badge Overlay */}
+            <div className="absolute top-4 right-4">
+              <Badge
+                variant="outline"
+                className={`bg-black/60 border-white/20 text-white backdrop-blur-sm ${
+                  joinStatus === 'joined' 
+                    ? 'bg-green-600/80 border-green-400/50' 
+                    : joinStatus === 'pending'
+                    ? 'bg-orange-600/80 border-orange-400/50'
+                    : 'bg-neutral-800/80 border-neutral-600/50'
+                }`}
+              >
+                {joinStatus === 'joined' ? 'Going' : 
+                 joinStatus === 'pending' ? 'Pending' : 
+                 joinStatus === 'rejected' ? 'Rejected' : 'Not Going'}
+              </Badge>
+            </div>
           </div>
 
           {/* Event Content */}
@@ -356,12 +426,16 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
                   <Badge
                     variant="outline"
                     className={`rounded-sm border-0 px-3 ${
-                      isRegistered 
+                      joinStatus === 'joined' 
                         ? 'bg-green-600 text-white' 
+                        : joinStatus === 'pending'
+                        ? 'bg-orange-600 text-white'
                         : 'bg-neutral-700 text-neutral-300'
                     }`}
                   >
-                    {isRegistered ? 'Going' : 'Not Going'}
+                    {joinStatus === 'joined' ? 'Going' : 
+                     joinStatus === 'pending' ? 'Pending' : 
+                     joinStatus === 'rejected' ? 'Rejected' : 'Not Going'}
                   </Badge>
                 </div>
               </div>
@@ -384,15 +458,6 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
                 <p className="text-white mb-3">{event.location || 'Location TBA'}</p>
                 
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={openLocationInMaps}
-                    className="border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Open in Maps
-                  </Button>
                   <Dialog open={showMap} onOpenChange={setShowMap}>
                     <DialogTrigger asChild>
                       <Button
@@ -425,6 +490,16 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
                       <p className="text-neutral-400 text-sm mt-2">{event.location}</p>
                     </DialogContent>
                   </Dialog>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openLocationInMaps}
+                    className="border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Open in Maps
+                  </Button>
                 </div>
               </div>
 
@@ -514,44 +589,23 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
 
           {/* Footer Actions */}
           <div className="p-6 border-t border-neutral-700">
-            <div className="flex gap-3">
+            <div className="space-y-4">
+              {/* Main Join Button */}
               <JoinEventButton
                 eventId={event.id}
-                isJoined={false}
+                isJoined={joinStatus === 'joined'}
+                joinStatus={joinStatus}
                 eventName={event.title}
                 requireApproval={event.requireApproval}
-                onJoinStatusChange={onJoinStatusChange}
-                className="flex-1"
+                onJoinStatusChange={handleJoinStatusChange}
+                className="w-full"
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-neutral-600 hover:bg-neutral-800"
-              >
-                <Heart className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-neutral-600 hover:bg-neutral-800"
-
-              >
-                {isRegistering && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {eventDetails?.capacity && eventDetails.attendeeCount >= eventDetails.capacity 
-                  ? 'Event Full' 
-                  : isRegistered 
-                    ? 'Leave Event' 
-                    : eventDetails?.requireApproval 
-                      ? 'Request to Join' 
-                      : 'Join Event'
-                }
-              </Button>
               
               {/* Secondary Actions */}
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <Button
                   variant="outline"
-                  className={`flex-1 border-neutral-600 hover:bg-neutral-800 ${
+                  className={`border-neutral-600 hover:bg-neutral-800 ${
                     isFavorited ? 'bg-red-600 border-red-600 text-white' : 'text-neutral-300'
                   }`}
                   onClick={handleFavorite}
@@ -559,16 +613,25 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
                   <Heart className={`h-4 w-4 mr-2 ${isFavorited ? 'fill-current' : ''}`} />
                   {isFavorited ? 'Saved' : 'Save'}
                 </Button>
+                
                 <Button
                   variant="outline"
-                  className="flex-1 border-neutral-600 text-neutral-300 hover:bg-neutral-800"
+                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800"
                   onClick={handleShare}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
+                
+                <Button
+                  variant="outline"
+                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800"
+                  onClick={openLocationInMaps}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Maps
+                </Button>
               </div>
-              
             </div>
           </div>
         </div>

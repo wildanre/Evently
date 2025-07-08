@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Clock, Users, ArrowLeft, Edit } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, ArrowLeft, Edit, Share2, Map } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ interface EventDetails {
   name: string;
   description: string;
   location: string;
+  mapsLink?: string;
   startDate: string;
   endDate: string;
   imageUrl?: string;
@@ -66,6 +67,7 @@ export default function EventDetailsPage() {
           name: eventData.name,
           description: eventData.description,
           location: eventData.location,
+          mapsLink: eventData.mapsLink,
           startDate: eventData.startDate,
           endDate: eventData.endDate,
           imageUrl: eventData.imageUrl,
@@ -126,6 +128,63 @@ export default function EventDetailsPage() {
       case 'ongoing': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
       case 'past': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Helper function to generate Google Maps URL
+  const generateMapsUrl = (location: string) => {
+    const encodedLocation = encodeURIComponent(location);
+    return `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+  };
+
+  // Helper function to get the appropriate maps URL
+  const getMapsUrl = (event: EventDetails) => {
+    // Use custom mapsLink if provided, otherwise generate from location
+    return event.mapsLink || generateMapsUrl(event.location);
+  };
+
+  // Helper function to determine if event is online based on location
+  const isEventOnline = (location: string) => {
+    const onlineKeywords = ['online', 'virtual', 'zoom', 'teams', 'meet', 'webinar', 'livestream', 'remote'];
+    return onlineKeywords.some(keyword => 
+      location.toLowerCase().includes(keyword.toLowerCase())
+    );
+  };
+
+  // Handle share functionality
+  const handleShare = async () => {
+    const shareData = {
+      title: event?.name || 'Event',
+      text: `Check out this event: ${event?.name}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Event link copied to clipboard!');
+      }
+    } catch (error) {
+      // Fallback to clipboard on error
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Event link copied to clipboard!');
+      } catch (clipboardError) {
+        toast.error('Failed to share event');
+      }
+    }
+  };
+
+  // Handle opening maps
+  const handleOpenMaps = () => {
+    if (event && !isEventOnline(event.location)) {
+      const mapsUrl = getMapsUrl(event);
+      window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.info('This is an online event');
     }
   };
 
@@ -207,9 +266,36 @@ export default function EventDetailsPage() {
             </div>
 
             <CardContent className="p-8">
-              <CardTitle className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
-                {event.name}
-              </CardTitle>
+              <div className="flex justify-between items-start mb-4">
+                <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {event.name}
+                </CardTitle>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShare}
+                    className="flex items-center gap-2"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                  
+                  {!isEventOnline(event.location) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenMaps}
+                      className="flex items-center gap-2"
+                    >
+                      <Map className="h-4 w-4" />
+                      Maps
+                    </Button>
+                  )}
+                </div>
+              </div>
               
               <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
                 {event.description}
@@ -242,9 +328,22 @@ export default function EventDetailsPage() {
                   <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                 </div>
                 
-                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <span>{event.location}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                    <span>{event.location}</span>
+                  </div>
+                  {!isEventOnline(event.location) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleOpenMaps}
+                      className="text-blue-600 hover:text-blue-700 p-1"
+                      title="Open in Google Maps"
+                    >
+                      <Map className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">

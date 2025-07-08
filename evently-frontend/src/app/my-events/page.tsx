@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Clock, Users, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, ExternalLink, AlertTriangle, Share2, Map } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ interface Event {
   name: string;
   description: string;
   location: string;
+  mapsLink?: string; // Add optional mapsLink field
   startDate: string;
   endDate: string;
   imageUrl?: string;
@@ -22,15 +23,16 @@ interface Event {
   capacity?: number;
   attendeesCount: number;
   organizerName: string;
-  participantStatus?: 'confirmed' | 'pending'; // Add participant status
+  participantStatus?: 'confirmed' | 'pending' | 'rejected'; // Add rejected status
   status: 'upcoming' | 'ongoing' | 'past';
+  isOnline?: boolean; // Add online/offline flag
 }
 
 export default function MyEventsPage() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'past' | 'pending'>('all');
+  const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'past' | 'pending' | 'rejected'>('all');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -79,6 +81,7 @@ export default function MyEventsPage() {
           name: event.name,
           description: event.description,
           location: event.location,
+          mapsLink: event.mapsLink, // Include mapsLink from API
           startDate: event.startDate,
           endDate: event.endDate,
           imageUrl: event.imageUrl,
@@ -87,7 +90,8 @@ export default function MyEventsPage() {
           attendeesCount: event.attendeeCount || 0,
           organizerName: event.organizerName || 'Unknown',
           participantStatus: event.participantStatus || 'confirmed', // Add participant status
-          status: getEventStatus(event.startDate, event.endDate)
+          status: getEventStatus(event.startDate, event.endDate),
+          isOnline: isEventOnline(event.location || '') // Determine if event is online
         })) : [];
 
         console.log("Transformed events:", transformedEvents);
@@ -138,9 +142,62 @@ export default function MyEventsPage() {
     return 'past';
   };
 
+  // Helper function to generate Google Maps URL
+  const generateMapsUrl = (location: string) => {
+    const encodedLocation = encodeURIComponent(location);
+    return `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+  };
+
+  // Helper function to get the appropriate maps URL
+  const getMapsUrl = (event: Event) => {
+    // Use custom mapsLink if provided, otherwise generate from location
+    return event.mapsLink || generateMapsUrl(event.location);
+  };
+
+  // Helper function to determine if event is online based on location
+  const isEventOnline = (location: string) => {
+    const onlineKeywords = ['online', 'virtual', 'zoom', 'teams', 'meet', 'webinar', 'livestream', 'remote'];
+    return onlineKeywords.some(keyword => 
+      location.toLowerCase().includes(keyword.toLowerCase())
+    );
+  };
+
+  // Helper function to share event
+  const shareEvent = async (event: Event) => {
+    const eventUrl = `${window.location.origin}/events/${event.id}`;
+    const shareText = `Check out this event: ${event.name}\n${event.description}\n\nDate: ${formatDate(event.startDate)}\nLocation: ${event.location}\n\n`;
+    
+    try {
+      if (navigator.share) {
+        // Use native sharing if available
+        await navigator.share({
+          title: event.name,
+          text: shareText,
+          url: eventUrl,
+        });
+      } else {
+        // Fallback to copying to clipboard
+        await navigator.clipboard.writeText(shareText + eventUrl);
+        toast.success("Event link copied to clipboard!", {
+          description: "Share this link with others to invite them to the event.",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing event:', error);
+      // Fallback: copy URL only
+      try {
+        await navigator.clipboard.writeText(eventUrl);
+        toast.success("Event link copied to clipboard!");
+      } catch (clipboardError) {
+        toast.error("Unable to share or copy link. Please try again.");
+      }
+    }
+  };
+
   const filteredEvents = events.filter(event => {
     if (filter === 'all') return true;
     if (filter === 'pending') return event.participantStatus === 'pending';
+    if (filter === 'rejected') return event.participantStatus === 'rejected';
     return getEventStatus(event.startDate, event.endDate) === filter;
   });
 
@@ -150,6 +207,7 @@ export default function MyEventsPage() {
       case 'ongoing': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
       case 'past': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+      case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -200,6 +258,7 @@ export default function MyEventsPage() {
           { key: 'upcoming', label: 'Upcoming' },
           { key: 'ongoing', label: 'Ongoing' },
           { key: 'pending', label: 'Pending' },
+          { key: 'rejected', label: 'Rejected' },
           { key: 'past', label: 'Past' }
         ].map((tab) => (
           <button
@@ -261,7 +320,8 @@ export default function MyEventsPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredEvents.map((event) => {
             const status = getEventStatus(event.startDate, event.endDate);
-            const displayStatus = event.participantStatus === 'pending' ? 'pending' : status;
+            const displayStatus = event.participantStatus === 'pending' ? 'pending' : 
+                                 event.participantStatus === 'rejected' ? 'rejected' : status;
             return (
               <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Event Image */}
@@ -280,6 +340,19 @@ export default function MyEventsPage() {
                   <Badge className={`absolute top-3 right-3 ${getStatusColor(displayStatus)}`}>
                     {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                   </Badge>
+                  {/* Online/Offline indicator */}
+                  <div className="absolute top-3 left-3">
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-xs ${
+                        event.isOnline 
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' 
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                      }`}
+                    >
+                      {event.isOnline ? '🌐 Online' : '📍 Offline'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <CardContent className="p-6">
@@ -301,6 +374,16 @@ export default function MyEventsPage() {
                     </div>
                   )}
 
+                  {/* Rejected Status Notice */}
+                  {event.participantStatus === 'rejected' && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-red-800 dark:text-red-400">
+                        <AlertTriangle className="h-4 w-4 inline mr-1" />
+                        Your registration was rejected by the organizer. You can try joining again.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <Calendar className="h-4 w-4 text-blue-600" />
@@ -314,7 +397,16 @@ export default function MyEventsPage() {
                     
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <MapPin className="h-4 w-4 text-blue-600" />
-                      <span className="line-clamp-1">{event.location}</span>
+                      <span className="line-clamp-1 flex-1">{event.location}</span>
+                      {!event.isOnline && (
+                        <button
+                          onClick={() => window.open(getMapsUrl(event), '_blank')}
+                          className="ml-auto p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                          title="View on Google Maps"
+                        >
+                          <Map className="h-4 w-4 text-blue-600 hover:text-blue-700" />
+                        </button>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -357,11 +449,22 @@ export default function MyEventsPage() {
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-green-200 text-green-600 hover:bg-green-50"
+                      onClick={() => shareEvent(event)}
+                      title="Share event"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                     <JoinEventButton
                       eventId={event.id}
                       isJoined={event.participantStatus === 'confirmed'}
                       eventName={event.name}
-                      joinStatus={event.participantStatus === 'pending' ? 'pending' : (event.participantStatus === 'confirmed' ? 'joined' : 'not_joined')}
+                      joinStatus={event.participantStatus === 'pending' ? 'pending' : 
+                                 event.participantStatus === 'rejected' ? 'rejected' :
+                                 event.participantStatus === 'confirmed' ? 'joined' : 'not_joined'}
                       onJoinStatusChange={handleEventLeft}
                       size="sm"
                       className="flex-1"

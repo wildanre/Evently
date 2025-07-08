@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { CalendarDays, MapPin, Users, Search, Filter, X, Sun, Moon, Grid3X3, List, RefreshCw, AlertCircle, ChevronRight, Briefcase, Code, Palette, Music, Heart, Gamepad2, BookOpen, Coffee, Zap, TrendingUp, Navigation } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Search, Filter, X, Sun, Moon, Grid3X3, List, RefreshCw, AlertCircle, ChevronRight, Briefcase, Code, Palette, Music, Heart, Gamepad2, BookOpen, Coffee, Zap, TrendingUp, Navigation, Share2, Map } from 'lucide-react';
 import { getEvents, Event, EventsResponse, getEventCategories, getFeaturedEvents, getUpcomingEvents, getEventsByCategory, EventCategory } from '@/lib/events';
 import { useAuth } from '@/contexts/AuthContext';
 import { JoinEventButton } from '@/components/join-event-button';
+import { toast } from "sonner";
 import Link from 'next/link';
 
 type ViewMode = 'grid' | 'list';
@@ -42,11 +43,16 @@ const formatDate = (dateString: string) => {
 };
 
 // Simple Event Card Component
-const SimpleEventCard = ({ event, onClick, onJoinStatusChange }: { 
+const SimpleEventCard = ({ event, onClick, onJoinStatusChange, onShare, getMapsUrl, isEventOnline }: { 
   event: Event, 
   onClick?: () => void, 
-  onJoinStatusChange?: () => void 
+  onJoinStatusChange?: () => void,
+  onShare?: (event: Event) => void,
+  getMapsUrl?: (event: Event) => string,
+  isEventOnline?: (location: string) => boolean
 }) => {
+  const eventIsOnline = isEventOnline ? isEventOnline(event.location || '') : false;
+  
   return (
     <Card className="group overflow-hidden hover:shadow-lg dark:hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-border">
       <div className="aspect-[4/3] bg-muted relative overflow-hidden cursor-pointer" onClick={onClick}>
@@ -65,10 +71,20 @@ const SimpleEventCard = ({ event, onClick, onJoinStatusChange }: {
             </Badge>
           </div>
         )}
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex gap-1">
           <Badge variant="outline" className="bg-white/90 text-black text-xs">
             <Users className="h-3 w-3 mr-1" />
             {event.attendeeCount}
+          </Badge>
+          <Badge 
+            variant="outline" 
+            className={`text-xs ${
+              eventIsOnline 
+                ? 'bg-purple-100/90 text-purple-800' 
+                : 'bg-gray-100/90 text-gray-800'
+            }`}
+          >
+            {eventIsOnline ? '🌐' : '📍'}
           </Badge>
         </div>
       </div>
@@ -92,9 +108,23 @@ const SimpleEventCard = ({ event, onClick, onJoinStatusChange }: {
             )}
           </div>
           {event.location && (
-            <div className="flex items-center mt-1 text-xs text-muted-foreground dark:text-gray-500">
-              <MapPin className="h-3 w-3 mr-1" />
-              {event.location}
+            <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground dark:text-gray-500">
+              <div className="flex items-center flex-1">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span className="truncate">{event.location}</span>
+              </div>
+              {!eventIsOnline && getMapsUrl && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(getMapsUrl(event), '_blank');
+                  }}
+                  className="ml-2 p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                  title="View on Google Maps"
+                >
+                  <Map className="h-3 w-3 text-blue-600 hover:text-blue-700" />
+                </button>
+              )}
             </div>
           )}
           <div className="flex items-center justify-between mt-3">
@@ -109,8 +139,8 @@ const SimpleEventCard = ({ event, onClick, onJoinStatusChange }: {
           </div>
         </div>
         
-        {/* Join Button */}
-        <div className="mt-4 pt-3 border-t border-border">
+        {/* Action Buttons */}
+        <div className="mt-4 pt-3 border-t border-border flex gap-2">
           <JoinEventButton
             eventId={event.id}
             isJoined={false} // We'll determine this in the component itself
@@ -118,8 +148,22 @@ const SimpleEventCard = ({ event, onClick, onJoinStatusChange }: {
             requireApproval={event.requireApproval}
             onJoinStatusChange={onJoinStatusChange}
             size="sm"
-            className="w-full"
+            className="flex-1"
           />
+          {onShare && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare(event);
+              }}
+              className="border-green-200 text-green-600 hover:bg-green-50"
+              title="Share event"
+            >
+              <Share2 className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -150,6 +194,58 @@ const CategoryCard = ({ category }: { category: EventCategory }) => {
 
 export default function DiscoverPage() {
   const { isAuthenticated } = useAuth();
+  
+  // Helper function to generate Google Maps URL
+  const generateMapsUrl = (location: string) => {
+    const encodedLocation = encodeURIComponent(location);
+    return `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+  };
+
+  // Helper function to get the appropriate maps URL
+  const getMapsUrl = (event: Event) => {
+    // Use custom mapsLink if provided, otherwise generate from location
+    return event.mapsLink || generateMapsUrl(event.location || '');
+  };
+
+  // Helper function to determine if event is online based on location
+  const isEventOnline = (location: string) => {
+    const onlineKeywords = ['online', 'virtual', 'zoom', 'teams', 'meet', 'webinar', 'livestream', 'remote'];
+    return onlineKeywords.some(keyword => 
+      location.toLowerCase().includes(keyword.toLowerCase())
+    );
+  };
+
+  // Helper function to share event
+  const shareEvent = async (event: Event) => {
+    const eventUrl = `${window.location.origin}/events/${event.id}`;
+    const shareText = `Check out this event: ${event.name}\n${event.description}\n\nDate: ${formatDate(event.startDate)}\nLocation: ${event.location}\n\n`;
+    
+    try {
+      if (navigator.share) {
+        // Use native sharing if available
+        await navigator.share({
+          title: event.name,
+          text: shareText,
+          url: eventUrl,
+        });
+      } else {
+        // Fallback to copying to clipboard
+        await navigator.clipboard.writeText(shareText + eventUrl);
+        toast.success("Event link copied to clipboard!", {
+          description: "Share this link with others to invite them to the event.",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing event:', error);
+      // Fallback: copy URL only
+      try {
+        await navigator.clipboard.writeText(eventUrl);
+        toast.success("Event link copied to clipboard!");
+      } catch (clipboardError) {
+        toast.error("Unable to share or copy link. Please try again.");
+      }
+    }
+  };
   
   // States for all events view
   const [events, setEvents] = useState<Event[]>([]);
@@ -370,6 +466,9 @@ export default function DiscoverPage() {
                           event={event}
                           onClick={() => navigateToEvent(event.id)}
                           onJoinStatusChange={handleJoinStatusChange}
+                          onShare={shareEvent}
+                          getMapsUrl={getMapsUrl}
+                          isEventOnline={isEventOnline}
                         />
                       ))}
                     </div>
@@ -407,6 +506,9 @@ export default function DiscoverPage() {
                           event={event}
                           onClick={() => navigateToEvent(event.id)}
                           onJoinStatusChange={handleJoinStatusChange}
+                          onShare={shareEvent}
+                          getMapsUrl={getMapsUrl}
+                          isEventOnline={isEventOnline}
                         />
                       ))}
                     </div>
@@ -540,6 +642,9 @@ export default function DiscoverPage() {
                     event={event}
                     onClick={() => navigateToEvent(event.id)}
                     onJoinStatusChange={handleJoinStatusChange}
+                    onShare={shareEvent}
+                    getMapsUrl={getMapsUrl}
+                    isEventOnline={isEventOnline}
                   />
                 ))}
               </div>

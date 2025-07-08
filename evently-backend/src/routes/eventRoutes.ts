@@ -161,7 +161,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
       where: { 
         userId,
         role: 'ATTENDEE',
-        status: { in: ['confirmed', 'pending'] } // Include both confirmed and pending
+        status: { in: ['confirmed', 'pending', 'rejected'] } // Include confirmed, pending, and rejected
       },
       include: {
         events_event_participants_eventIdToevents: {
@@ -530,6 +530,7 @@ router.post('/', [
   body('name').trim().isLength({ min: 1 }).withMessage('Event name is required'),
   body('description').optional().isString(),
   body('location').optional().isString(),
+  body('mapsLink').optional().isURL().withMessage('Maps link must be a valid URL'),
   body('startDate').isISO8601().withMessage('Valid start date is required'),
   body('endDate').isISO8601().withMessage('Valid end date is required'),
   body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be positive'),
@@ -547,6 +548,7 @@ router.post('/', [
       name,
       description,
       location,
+      mapsLink,
       startDate,
       endDate,
       capacity,
@@ -566,6 +568,7 @@ router.post('/', [
         name,
         description,
         location,
+        mapsLink,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         capacity,
@@ -602,6 +605,7 @@ router.put('/:id', [
   body('name').optional().trim().isLength({ min: 1 }).withMessage('Event name cannot be empty'),
   body('description').optional().isString(),
   body('location').optional().isString(),
+  body('mapsLink').optional().isURL().withMessage('Maps link must be a valid URL'),
   body('startDate').optional().isISO8601().withMessage('Valid start date is required'),
   body('endDate').optional().isISO8601().withMessage('Valid end date is required'),
   body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be positive'),
@@ -734,7 +738,43 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
     });
 
     if (existingRegistration) {
-      return res.status(400).json({ error: 'Already registered for this event' });
+      // If user was rejected, allow them to re-register by updating the existing record
+      if (existingRegistration.status === 'rejected') {
+        const registrationStatus = event.requireApproval ? 'pending' : 'confirmed';
+        
+        await prisma.event_participants.update({
+          where: {
+            eventId_userId: {
+              eventId: id,
+              userId: req.user!.id
+            }
+          },
+          data: {
+            status: registrationStatus,
+            registeredAt: new Date() // Update registration time
+          }
+        });
+
+        // Only update attendee count if automatically confirmed
+        if (!event.requireApproval) {
+          await prisma.events.update({
+            where: { id },
+            data: { attendeeCount: { increment: 1 } }
+          });
+        }
+
+        const message = event.requireApproval 
+          ? 'Re-registration submitted! Awaiting organizer approval.'
+          : 'Successfully re-registered for event';
+        
+        return res.json({ 
+          message, 
+          requireApproval: event.requireApproval,
+          status: registrationStatus
+        });
+      } else {
+        return res.status(400).json({ error: 'Already registered for this event' });
+      }
     }
 
     // Register user as ATTENDEE

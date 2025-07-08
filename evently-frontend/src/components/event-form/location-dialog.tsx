@@ -161,6 +161,21 @@ export function LocationDialog({
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maps-link" className="text-white">
+                    Google Maps Link (Optional)
+                  </Label>
+                  <Input
+                    id="maps-link"
+                    name="mapsLink"
+                    type="url"
+                    placeholder="https://maps.google.com/..."
+                    className="bg-[#1a1a2e] border-gray-700 text-white"
+                  />
+                  <p className="text-xs text-gray-400">
+                    Provide a custom Google Maps link for this location. If not provided, one will be auto-generated.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">

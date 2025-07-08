@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
-import { UserPlus, UserMinus, Loader2, Clock, X } from "lucide-react";
+import { UserPlus, UserMinus, Loader2, Clock, X, AlertTriangle } from "lucide-react";
 
 interface JoinEventButtonProps {
   eventId: string;
   isJoined: boolean;
   eventName: string;
   requireApproval?: boolean;
-  joinStatus?: 'joined' | 'pending' | 'not_joined'; // Add join status prop
+  joinStatus?: 'joined' | 'pending' | 'rejected' | 'not_joined'; // Add rejected status
   onJoinStatusChange?: () => void;
   className?: string;
   size?: "sm" | "default" | "lg";
@@ -115,15 +115,19 @@ export function JoinEventButton({
         if (data.requireApproval || requireApproval) {
           setCurrentJoinStatus('pending');
           setJoined(false); // Not fully joined yet, just pending
-          toast.success("Registration submitted!", {
-            description: `Your request to join "${eventName}" is pending approval from the organizer.`,
+          const isReRegistration = currentJoinStatus === 'rejected';
+          toast.success(isReRegistration ? "Re-registration submitted!" : "Registration submitted!", {
+            description: isReRegistration 
+              ? `Your new request to join "${eventName}" is pending approval from the organizer.`
+              : `Your request to join "${eventName}" is pending approval from the organizer.`,
             duration: 6000,
           });
         } else {
           setCurrentJoinStatus('joined');
           setJoined(true);
-          toast.success("Successfully joined event!", {
-            description: `You've joined "${eventName}". Check your My Events page.`,
+          const isReRegistration = currentJoinStatus === 'rejected';
+          toast.success(isReRegistration ? "Successfully re-joined event!" : "Successfully joined event!", {
+            description: `You've ${isReRegistration ? 're-' : ''}joined "${eventName}". Check your My Events page.`,
             duration: 5000,
           });
         }
@@ -134,11 +138,20 @@ export function JoinEventButton({
         
         if (response.status === 400) {
           if (errorData.error.includes('already registered')) {
-            toast.info("Already joined", {
-              description: "You're already registered for this event.",
-            });
-            setCurrentJoinStatus('joined');
-            setJoined(true);
+            // Check current status to determine appropriate message
+            if (currentJoinStatus === 'rejected') {
+              // This shouldn't happen now since backend allows re-registration after rejection
+              setCurrentJoinStatus('rejected');
+              toast.info("Registration was rejected", {
+                description: "Your previous registration was rejected. Please try joining again.",
+              });
+            } else {
+              toast.info("Already joined", {
+                description: "You're already registered for this event.",
+              });
+              setCurrentJoinStatus('joined');
+              setJoined(true);
+            }
             if (onJoinStatusChange) onJoinStatusChange();
           } else if (errorData.error.includes('Event is full')) {
             toast.error("Event is full", {
@@ -255,6 +268,25 @@ export function JoinEventButton({
           <X className="h-4 w-4 mr-2" />
         )}
         {loading ? "Canceling..." : "Cancel Request"}
+      </Button>
+    );
+  }
+
+  // Show rejected status button - allow re-joining
+  if (currentJoinStatus === 'rejected') {
+    return (
+      <Button
+        size={size}
+        className={`bg-blue-600 hover:bg-blue-700 text-white ${className}`}
+        onClick={handleJoinEvent}
+        disabled={loading || checkingStatus}
+      >
+        {(loading || checkingStatus) ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <UserPlus className="h-4 w-4 mr-2" />
+        )}
+        {loading ? "Joining..." : checkingStatus ? "Loading..." : "Join Again"}
       </Button>
     );
   }

@@ -38,6 +38,7 @@ export default function EditEventPage() {
   // Location
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
+  const [mapsLink, setMapsLink] = useState<string>("");
 
   // Description
   const [description, setDescription] = useState("");
@@ -83,6 +84,7 @@ export default function EditEventPage() {
         setVisibility(event.visibility ? "public" : "private");
         setDescription(event.description);
         setLocation(event.location);
+        setMapsLink(event.mapsLink || "");
         setTags(event.tags || []);
         setImageUrl(event.imageUrl || "");
         setRequireApproval(event.requireApproval);
@@ -120,6 +122,16 @@ export default function EditEventPage() {
   };
 
   const handleLocationSave = (locationData: any) => {
+    // Store the maps link if provided for offline events
+    if (locationData.type === "offline" && locationData.mapsLink) {
+      setMapsLink(locationData.mapsLink);
+    } else if (locationData.type === "offline") {
+      // Keep existing maps link if not provided
+      // setMapsLink(""); // Don't clear existing link
+    } else {
+      setMapsLink(""); // Clear for virtual events
+    }
+    
     if (locationData.type === "offline") {
       const locationParts = [];
       if (locationData.venueName) locationParts.push(locationData.venueName);
@@ -233,6 +245,7 @@ export default function EditEventPage() {
       name: eventName.trim(),
       description: description.trim(),
       location: location.trim(),
+      mapsLink: mapsLink.trim() || undefined, // Only send if provided
       startDate: startDateTime.toISOString(),
       endDate: endDateTime.toISOString(),
       capacity: eventCapacity,

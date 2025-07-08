@@ -67,6 +67,7 @@ model events {
   name                                                         String
   description                                                  String?
   location                                                     String?
+  mapsLink                                                     String?
   visibility                                                   Boolean              @default(true)
   tags                                                         String[]             @default([])
   imageUrl                                                     String?

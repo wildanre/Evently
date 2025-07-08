@@ -92,6 +92,7 @@ export default function EventCreationForm() {
   // Location
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
+  const [mapsLink, setMapsLink] = useState<string>("");
 
   // Description
   const [description, setDescription] = useState("");
@@ -110,6 +111,13 @@ export default function EventCreationForm() {
   const [isCreating, setIsCreating] = useState(false);
 
   const handleLocationSave = (locationData: any) => {
+    // Store the maps link if provided for offline events
+    if (locationData.type === "offline" && locationData.mapsLink) {
+      setMapsLink(locationData.mapsLink);
+    } else {
+      setMapsLink(""); // Clear if not offline or no link provided
+    }
+    
     // For offline events, combine venue name and address into a single location string
     if (locationData.type === "offline") {
       const locationParts = [];
@@ -241,6 +249,7 @@ export default function EventCreationForm() {
       name: eventName.trim(),
       description: description.trim(),
       location: location.trim(),
+      mapsLink: mapsLink.trim() || undefined, // Only send if provided
       startDate: startDateTime.toISOString(),
       endDate: endDateTime.toISOString(),
       capacity: eventCapacity,

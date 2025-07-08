@@ -161,7 +161,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
       where: { 
         userId,
         role: 'ATTENDEE',
-        status: 'confirmed' // Only show confirmed registrations
+        status: { in: ['confirmed', 'pending'] } // Include both confirmed and pending
       },
       include: {
         events_event_participants_eventIdToevents: {
@@ -195,6 +195,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
       attendeeCount: participant.events_event_participants_eventIdToevents._count.event_participants_event_participants_eventIdToevents,
       organizerName: participant.events_event_participants_eventIdToevents.users.name,
       joinedAt: participant.registeredAt,
+      participantStatus: participant.status, // Add participant status (confirmed/pending)
       status: getEventStatus(participant.events_event_participants_eventIdToevents.startDate, participant.events_event_participants_eventIdToevents.endDate)
     }));
 

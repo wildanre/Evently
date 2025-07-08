@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EventImageUpload } from "./event-image-upload";
+import { ImageUploadErrorBoundary } from "../error-boundary";
 import { EventBasicInfo } from "./event-basic-info";
 import { LocationDialog } from "./location-dialog";
 import { DescriptionDialog } from "./description-dialog";
@@ -354,10 +355,12 @@ export default function EventCreationForm() {
         <div className="grid md:grid-cols-[1fr_1.5fr] gap-0">
           {/* Left Column - Image Upload */}
           <div className="bg-gray-50 dark:bg-gray-800 p-6">
-            <EventImageUpload 
-              imageUrl={imageUrl}
-              onImageUpload={setImageUrl}
-            />
+            <ImageUploadErrorBoundary>
+              <EventImageUpload 
+                imageUrl={imageUrl}
+                onImageUpload={setImageUrl}
+              />
+            </ImageUploadErrorBoundary>
           </div>
 
           {/* Right Column - Form Content */}

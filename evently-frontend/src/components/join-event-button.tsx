@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
-import { UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { UserPlus, UserMinus, Loader2, Clock, X } from "lucide-react";
 
 interface JoinEventButtonProps {
   eventId: string;
   isJoined: boolean;
   eventName: string;
   requireApproval?: boolean;
+  joinStatus?: 'joined' | 'pending' | 'not_joined'; // Add join status prop
   onJoinStatusChange?: () => void;
   className?: string;
   size?: "sm" | "default" | "lg";
@@ -22,6 +23,7 @@ export function JoinEventButton({
   isJoined,
   eventName,
   requireApproval = false,
+  joinStatus = 'not_joined', // Default value
   onJoinStatusChange,
   className = "",
   size = "default"
@@ -29,6 +31,7 @@ export function JoinEventButton({
   const { isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [joined, setJoined] = useState(isJoined);
+  const [currentJoinStatus, setCurrentJoinStatus] = useState(joinStatus);
   const [checkingStatus, setCheckingStatus] = useState(false);
 
   // Check if user has already joined this event when component mounts
@@ -41,7 +44,8 @@ export function JoinEventButton({
   // Update joined state when isJoined prop changes
   useEffect(() => {
     setJoined(isJoined);
-  }, [isJoined]);
+    setCurrentJoinStatus(joinStatus);
+  }, [isJoined, joinStatus]);
 
   const checkJoinStatus = async () => {
     if (!isAuthenticated || !user?.email) return;
@@ -63,6 +67,12 @@ export function JoinEventButton({
         const statusData = await response.json();
         console.log("Join status result:", statusData);
         setJoined(statusData.isJoined || false);
+        // Update join status based on API response
+        if (statusData.status) {
+          setCurrentJoinStatus(statusData.status);
+        } else {
+          setCurrentJoinStatus(statusData.isJoined ? 'joined' : 'not_joined');
+        }
       }
     } catch (error) {
       console.error('Error checking join status:', error);
@@ -101,20 +111,24 @@ export function JoinEventButton({
 
       if (response.ok) {
         const data = await response.json();
-        setJoined(true);
-        if (onJoinStatusChange) onJoinStatusChange();
         
         if (data.requireApproval || requireApproval) {
+          setCurrentJoinStatus('pending');
+          setJoined(false); // Not fully joined yet, just pending
           toast.success("Registration submitted!", {
             description: `Your request to join "${eventName}" is pending approval from the organizer.`,
             duration: 6000,
           });
         } else {
+          setCurrentJoinStatus('joined');
+          setJoined(true);
           toast.success("Successfully joined event!", {
             description: `You've joined "${eventName}". Check your My Events page.`,
             duration: 5000,
           });
         }
+        
+        if (onJoinStatusChange) onJoinStatusChange();
       } else {
         const errorData = await response.json();
         
@@ -123,6 +137,7 @@ export function JoinEventButton({
             toast.info("Already joined", {
               description: "You're already registered for this event.",
             });
+            setCurrentJoinStatus('joined');
             setJoined(true);
             if (onJoinStatusChange) onJoinStatusChange();
           } else if (errorData.error.includes('Event is full')) {
@@ -172,14 +187,24 @@ export function JoinEventButton({
       });
 
       if (response.ok) {
+        setCurrentJoinStatus('not_joined');
         setJoined(false);
         if (onJoinStatusChange) onJoinStatusChange();
-        toast.success("Successfully left event", {
-          description: `You've left "${eventName}".`,
-        });
+        
+        // Show appropriate message based on previous status
+        if (currentJoinStatus === 'pending') {
+          toast.success("Registration canceled", {
+            description: `Your registration request for "${eventName}" has been canceled.`,
+          });
+        } else {
+          toast.success("Successfully left event", {
+            description: `You've left "${eventName}".`,
+          });
+        }
       } else {
         const errorData = await response.json();
-        toast.error("Failed to leave event", {
+        const actionText = currentJoinStatus === 'pending' ? 'cancel registration' : 'leave event';
+        toast.error(`Failed to ${actionText}`, {
           description: errorData.error || "Please try again later.",
         });
       }
@@ -214,7 +239,27 @@ export function JoinEventButton({
     );
   }
 
-  if (joined) {
+  // Show pending status button
+  if (currentJoinStatus === 'pending') {
+    return (
+      <Button
+        size={size}
+        variant="outline"
+        className={`border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 ${className}`}
+        onClick={handleLeaveEvent}
+        disabled={loading || checkingStatus}
+      >
+        {loading ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <X className="h-4 w-4 mr-2" />
+        )}
+        {loading ? "Canceling..." : "Cancel Request"}
+      </Button>
+    );
+  }
+
+  if (joined || currentJoinStatus === 'joined') {
     return (
       <Button
         size={size}

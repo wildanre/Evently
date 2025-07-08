@@ -22,6 +22,7 @@ interface Event {
   capacity?: number;
   attendeesCount: number;
   organizerName: string;
+  participantStatus?: 'confirmed' | 'pending'; // Add participant status
   status: 'upcoming' | 'ongoing' | 'past';
 }
 
@@ -29,7 +30,7 @@ export default function MyEventsPage() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'past'>('all');
+  const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'past' | 'pending'>('all');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -85,6 +86,7 @@ export default function MyEventsPage() {
           capacity: event.capacity,
           attendeesCount: event.attendeeCount || 0,
           organizerName: event.organizerName || 'Unknown',
+          participantStatus: event.participantStatus || 'confirmed', // Add participant status
           status: getEventStatus(event.startDate, event.endDate)
         })) : [];
 
@@ -138,6 +140,7 @@ export default function MyEventsPage() {
 
   const filteredEvents = events.filter(event => {
     if (filter === 'all') return true;
+    if (filter === 'pending') return event.participantStatus === 'pending';
     return getEventStatus(event.startDate, event.endDate) === filter;
   });
 
@@ -146,6 +149,7 @@ export default function MyEventsPage() {
       case 'upcoming': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
       case 'ongoing': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
       case 'past': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -195,6 +199,7 @@ export default function MyEventsPage() {
           { key: 'all', label: 'All Events' },
           { key: 'upcoming', label: 'Upcoming' },
           { key: 'ongoing', label: 'Ongoing' },
+          { key: 'pending', label: 'Pending' },
           { key: 'past', label: 'Past' }
         ].map((tab) => (
           <button
@@ -256,6 +261,7 @@ export default function MyEventsPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredEvents.map((event) => {
             const status = getEventStatus(event.startDate, event.endDate);
+            const displayStatus = event.participantStatus === 'pending' ? 'pending' : status;
             return (
               <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Event Image */}
@@ -271,8 +277,8 @@ export default function MyEventsPage() {
                       <Calendar className="h-12 w-12 text-blue-400" />
                     </div>
                   )}
-                  <Badge className={`absolute top-3 right-3 ${getStatusColor(status)}`}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  <Badge className={`absolute top-3 right-3 ${getStatusColor(displayStatus)}`}>
+                    {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                   </Badge>
                 </div>
 
@@ -284,6 +290,16 @@ export default function MyEventsPage() {
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
                     {event.description}
                   </p>
+
+                  {/* Pending Status Notice */}
+                  {event.participantStatus === 'pending' && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-400">
+                        <Clock className="h-4 w-4 inline mr-1" />
+                        Your registration is pending approval from the organizer. You can cancel your request anytime.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -343,8 +359,9 @@ export default function MyEventsPage() {
                     </Button>
                     <JoinEventButton
                       eventId={event.id}
-                      isJoined={true}
+                      isJoined={event.participantStatus === 'confirmed'}
                       eventName={event.name}
+                      joinStatus={event.participantStatus === 'pending' ? 'pending' : (event.participantStatus === 'confirmed' ? 'joined' : 'not_joined')}
                       onJoinStatusChange={handleEventLeft}
                       size="sm"
                       className="flex-1"

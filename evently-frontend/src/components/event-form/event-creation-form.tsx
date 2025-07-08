@@ -71,9 +71,13 @@ export default function EventCreationForm() {
       </div>
     );
   }
+
   // Basic event info
   const [eventName, setEventName] = useState("");
   const [visibility, setVisibility] = useState("public");
+  const [location, setLocation] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+
 
   // Date and time - Set to current date and time
   const currentDate = new Date();
@@ -87,6 +91,7 @@ export default function EventCreationForm() {
   const [endTime, setEndTime] = useState(
     `${(currentDate.getHours() + 1).toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`
   );
+
   const [timezone, setTimezone] = useState("GMT+07:00");
 
   // Location
@@ -130,10 +135,12 @@ export default function EventCreationForm() {
       setLocation(`${locationData.meetingPlatform || "Virtual"}: ${locationData.meetingLink || ""}`);
     }
     console.log("Location saved:", locationData);
+
   };
 
   const handleDescriptionSave = (desc: string) => {
     setDescription(desc);
+
     console.log("Description saved:", desc);
   };
 
@@ -480,6 +487,7 @@ export default function EventCreationForm() {
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           )}
           {isCreating ? "Creating Event..." : "Create Event"}
+
         </Button>
             </div>
           </div>

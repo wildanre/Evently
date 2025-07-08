@@ -58,7 +58,8 @@ export default function UpcomingEventCard() {
       setLoading(true)
       setError(null)
 
-      const baseUrl = "https://evently-backend-amber.vercel.app/api/events"
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://evently-backend-amber.vercel.app/api"
+      const baseUrl = `${API_BASE_URL}/events`
       const url = new URL(baseUrl)
       url.searchParams.set("page", String(page))
       url.searchParams.set("limit", String(limit))
@@ -88,8 +89,8 @@ export default function UpcomingEventCard() {
       }
 
       const formattedEvents = eventsArray.map((event: any, index: number) => {
-        // Create a fallback date if dateTime is not available
-        const eventDate = event.dateTime || event.date || new Date().toISOString()
+        // Use startDate from backend API response
+        const eventDate = event.startDate || event.dateTime || event.date || new Date().toISOString()
 
         return {
           id: event.id || `event-${index}`,
@@ -104,10 +105,10 @@ export default function UpcomingEventCard() {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          title: event.title || event.name || "Untitled Event",
-          organizers: event.organizers || event.organizer || "Unknown",
+          title: event.name || event.title || "Untitled Event",
+          organizers: event.users?.name || event.organizer?.name || event.organizers || "Unknown",
           location: event.location || event.venue || "TBA",
-          attendees: event.attendeesCount || event.attendees || event.participants || 0,
+          attendees: event.attendeeCount || event._count?.event_participants_event_participants_eventIdToevents || event.attendees || 0,
           imageUrl: event.imageUrl || event.image || `/placeholder.svg?height=128&width=128`,
           going: true,
         }

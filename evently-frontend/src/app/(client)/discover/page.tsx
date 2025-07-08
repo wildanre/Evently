@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { JoinEventButton } from '@/components/join-event-button';
 import { toast } from "sonner";
 import Link from 'next/link';
+import Marquee from "react-fast-marquee";
 
 type ViewMode = 'grid' | 'list';
 
@@ -379,6 +380,36 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-900 to-black text-white">
       <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Search Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4">Discover Events</h1>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search events..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="pl-10 bg-muted/50 border-border dark:border-gray-700 text-foreground dark:text-white"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Button onClick={handleSearch} className="sm:w-auto">
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+          </div>
+        </div>
         {!showAllEvents ? (
           <>
             {discoverLoading ? (
@@ -498,6 +529,7 @@ export default function DiscoverPage() {
                       View all <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
+
                   {upcomingEvents.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                       {upcomingEvents.map((event) => (
@@ -567,7 +599,7 @@ export default function DiscoverPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex border rounded-lg p-1 bg-muted/50">
+                <div className="flex border rounded-lg bg-muted/50">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
@@ -583,6 +615,13 @@ export default function DiscoverPage() {
                     className="h-8 px-3"
                   >
                     <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                    variant="ghost"
+                    className="h-8 px-3"
+                  >
+                    <RefreshCw className="h-4 w-4" />
                   </Button>
                 </div>
                 <Button variant="outline" className="border-border dark:border-gray-700">

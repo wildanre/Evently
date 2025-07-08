@@ -40,10 +40,20 @@ export default function PastEventCard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("https://evently-backend-amber.vercel.app/api/events")
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://evently-backend-amber.vercel.app/api";
+    fetch(`${API_BASE_URL}/events`)
       .then((res) => res.json())
       .then((data) => {
-        setEvents(data.events || []);
+        // Filter for past events (events that have ended)
+        const now = new Date();
+        const pastEvents = (data.events || []).filter((event: Event) => 
+          new Date(event.endDate) < now
+        );
+        setEvents(pastEvents);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching past events:', error);
         setLoading(false);
       });
   }, []);

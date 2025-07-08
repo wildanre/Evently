@@ -32,7 +32,10 @@ function formatDay(dateStr: string) {
 
 function formatTime(dateStr: string) {
   const date = new Date(dateStr);
-  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function PastEventCard() {
@@ -40,20 +43,22 @@ export default function PastEventCard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://evently-backend-amber.vercel.app/api";
+    const API_BASE_URL =
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      "https://evently-backend-amber.vercel.app/api";
     fetch(`${API_BASE_URL}/events`)
       .then((res) => res.json())
       .then((data) => {
-        // Filter for past events (events that have ended)
+        // Filter hanya event yang sudah berakhir
         const now = new Date();
-        const pastEvents = (data.events || []).filter((event: Event) => 
-          new Date(event.endDate) < now
+        const pastEvents = (data.events || []).filter(
+          (event: Event) => new Date(event.endDate) < now
         );
         setEvents(pastEvents);
         setLoading(false);
       })
       .catch((error) => {
-        console.error('Error fetching past events:', error);
+        console.error("Error fetching past events:", error);
         setLoading(false);
       });
   }, []);
@@ -79,11 +84,10 @@ export default function PastEventCard() {
                 <div className="flex p-2 gap-4">
                   <div className="flex-grow">
                     <div className="text-neutral-400 mb-1">
-                      {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                      {formatTime(event.startDate)} -{" "}
+                      {formatTime(event.endDate)}
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">
-                      {event.name}
-                    </h3>
+                    <h3 className="text-xl font-semibold mb-2">{event.name}</h3>
                     <div className="flex items-center gap-1 text-sm text-neutral-400 mb-2">
                       <Users className="h-4 w-4" />
                       <span>{event.users?.name || "Unknown Organizer"}</span>
@@ -95,9 +99,9 @@ export default function PastEventCard() {
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
-                        className="rounded-sm bg-green-600 text-white border-0 px-3"
+                        className="rounded-sm bg-neutral-600 text-white border-0 px-3"
                       >
-                        Going
+                        Past
                       </Badge>
                       <div className="flex -space-x-2">
                         {[...Array(4)].map((_, i) => (

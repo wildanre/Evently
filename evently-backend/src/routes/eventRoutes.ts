@@ -160,6 +160,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
     const userEvents = await prisma.event_participants.findMany({
       where: { 
         userId,
+        role: 'ATTENDEE',
         status: 'confirmed' // Only show confirmed registrations
       },
       include: {
@@ -191,12 +192,13 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
       imageUrl: participant.events_event_participants_eventIdToevents.imageUrl,
       tags: participant.events_event_participants_eventIdToevents.tags,
       capacity: participant.events_event_participants_eventIdToevents.capacity,
-      attendeesCount: participant.events_event_participants_eventIdToevents._count.event_participants_event_participants_eventIdToevents,
+      attendeeCount: participant.events_event_participants_eventIdToevents._count.event_participants_event_participants_eventIdToevents,
       organizerName: participant.events_event_participants_eventIdToevents.users.name,
+      joinedAt: participant.registeredAt,
       status: getEventStatus(participant.events_event_participants_eventIdToevents.startDate, participant.events_event_participants_eventIdToevents.endDate)
     }));
 
-    res.json(events);
+    res.json({ events });
   } catch (error) {
     console.error('Get my joined events error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -700,7 +702,15 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
 
     const event = await prisma.events.findUnique({
       where: { id },
-      include: { _count: { select: { event_participants_event_participants_eventIdToevents: true } } }
+      include: { 
+        _count: { 
+          select: { 
+            event_participants_event_participants_eventIdToevents: {
+              where: { status: 'confirmed' }
+            }
+          } 
+        } 
+      }
     });
 
     if (!event) {
@@ -726,7 +736,7 @@ router.post('/:id/register', authenticateToken, async (req: AuthRequest, res) =>
       return res.status(400).json({ error: 'Already registered for this event' });
     }
 
-    // Register user
+    // Register user as ATTENDEE
     const registrationStatus = event.requireApproval ? 'pending' : 'confirmed';
     
     await prisma.event_participants.create({
@@ -1064,6 +1074,147 @@ router.post('/:id/attendees/:attendeeId/reject', authenticateToken, async (req: 
     });
   } catch (error) {
     console.error('Reject attendee error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/events/{id}/join-status:
+ *   get:
+ *     summary: Check if the current user has joined the event
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: Join status of the user for the event
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isJoined:
+ *                   type: boolean
+ *                   example: true
+ *                 status:
+ *                   type: string
+ *                   enum: [joined, left, not_joined]
+ *                   example: "joined"
+ *                 joinedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2025-06-16T10:30:00Z"
+ *       401:
+ *         description: Unauthorized - authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Authentication required"
+ *       404:
+ *         description: Event not found
+ */
+router.get('/:id/join-status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    const registration = await prisma.event_participants.findUnique({
+      where: {
+        eventId_userId: {
+          eventId: id,
+          userId
+        }
+      }
+    });
+
+    const isJoined = registration && registration.status === 'confirmed' && registration.role === 'ATTENDEE';
+
+    res.json({ 
+      isJoined,
+      status: registration?.status || 'not_registered',
+      registeredAt: registration?.registeredAt || null,
+      role: registration?.role || null
+    });
+  } catch (error) {
+    console.error('Check join status error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create test events for development
+router.post('/create-test-events', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ error: 'This endpoint is only available in development' });
+    }
+
+    // Create a test user first
+    const testUser = await prisma.users.upsert({
+      where: { email: 'test@example.com' },
+      update: {},
+      create: {
+        name: 'Test Organizer',
+        email: 'test@example.com',
+        password: 'hashedpassword123'
+      }
+    });
+
+    // Create test events
+    const testEvents = [
+      {
+        name: 'React Workshop 2025',
+        description: 'Learn the latest React features and best practices in this hands-on workshop.',
+        location: 'Tech Hub Jakarta',
+        startDate: new Date('2025-01-15T10:00:00Z'),
+        endDate: new Date('2025-01-15T17:00:00Z'),
+        capacity: 50,
+        tags: ['React', 'JavaScript', 'Workshop'],
+        organizerId: testUser.id
+      },
+      {
+        name: 'Startup Networking Event',
+        description: 'Connect with entrepreneurs, investors, and startup enthusiasts.',
+        location: 'Co-working Space Bandung',
+        startDate: new Date('2025-01-20T18:00:00Z'),
+        endDate: new Date('2025-01-20T21:00:00Z'),
+        capacity: 100,
+        tags: ['Startup', 'Networking', 'Business'],
+        organizerId: testUser.id
+      },
+      {
+        name: 'AI & Machine Learning Conference',
+        description: 'Explore the future of AI and machine learning with industry experts.',
+        location: 'Convention Center Surabaya',
+        startDate: new Date('2025-02-01T09:00:00Z'),
+        endDate: new Date('2025-02-01T18:00:00Z'),
+        capacity: 200,
+        tags: ['AI', 'Machine Learning', 'Conference'],
+        organizerId: testUser.id
+      }
+    ];
+
+    const createdEvents = await Promise.all(
+      testEvents.map(event => prisma.events.create({ data: event }))
+    );
+
+    res.json({ 
+      message: 'Test events created successfully',
+      events: createdEvents 
+    });
+  } catch (error) {
+    console.error('Create test events error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

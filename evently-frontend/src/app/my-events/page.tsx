@@ -70,6 +70,7 @@ export default function MyEventsPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("Raw API response:", data);
         
         // Transform data to match expected interface
         const transformedEvents = data.events ? data.events.map((event: any) => ({
@@ -83,15 +84,26 @@ export default function MyEventsPage() {
           tags: event.tags || [],
           capacity: event.capacity,
           attendeesCount: event.attendeeCount || 0,
-          organizerName: event.organizer ? event.organizer.name : 'Unknown',
+          organizerName: event.organizerName || 'Unknown',
           status: getEventStatus(event.startDate, event.endDate)
         })) : [];
 
+        console.log("Transformed events:", transformedEvents);
         setEvents(transformedEvents);
       } else {
-        toast.error("Failed to fetch your events");
+        const errorText = await response.text();
+        console.error("API response not ok:", response.status, response.statusText, errorText);
+        
+        if (response.status === 401) {
+          toast.error("Authentication failed. Please log in again.");
+          localStorage.removeItem('auth_token');
+          window.location.href = '/login';
+        } else {
+          toast.error("Failed to fetch your events");
+        }
       }
     } catch (error) {
+      console.error("Network error:", error);
       toast.error("Network error while fetching events");
     } finally {
       setLoading(false);
@@ -203,14 +215,19 @@ export default function MyEventsPage() {
       {loading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-t-lg"></div>
+            <Card key={i} className="overflow-hidden animate-pulse">
+              <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800"></div>
               <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
                 <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
                 </div>
               </CardContent>
             </Card>

@@ -52,32 +52,17 @@ export function JoinEventButton({
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      // Get event details and check participants
-      const response = await fetch(`${API_ENDPOINTS.EVENTS}/${eventId}`, {
+      // Use the new join-status endpoint
+      const response = await fetch(`${API_ENDPOINTS.EVENTS}/${eventId}/join-status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
       if (response.ok) {
-        const eventData = await response.json();
-        const userEmail = user.email;
-        
-        console.log("Event data for join check:", eventData);
-        console.log("User email:", userEmail);
-        console.log("Participants:", eventData.event?.participants);
-        
-        // Check if user is in participants list
-        const isUserJoined = eventData.event?.participants?.some((participant: any) =>
-          participant.user && participant.user.email === userEmail && 
-          (participant.status === 'confirmed' || participant.status === 'pending')
-        ) || eventData.event?.event_participants_event_participants_eventIdToevents?.some((participant: any) =>
-          participant.users && participant.users.email === userEmail && 
-          (participant.status === 'confirmed' || participant.status === 'pending')
-        ) || false;
-
-        console.log("Join status check result:", isUserJoined);
-        setJoined(isUserJoined);
+        const statusData = await response.json();
+        console.log("Join status result:", statusData);
+        setJoined(statusData.isJoined || false);
       }
     } catch (error) {
       console.error('Error checking join status:', error);

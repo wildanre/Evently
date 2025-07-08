@@ -26,6 +26,24 @@ model event_feedback {
   @@unique([eventId, userId])
 }
 
+// Tabel sederhana untuk menangani join event
+model myEvents {
+  id         String   @id @default(cuid())
+  userId     String
+  eventId    String
+  status     String   @default("joined") // "joined", "pending", "left"
+  joinedAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event      events   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("my_events")
+}
+
+// Tabel untuk participants dengan role khusus (speaker, manager, dll)
 model event_participants {
   id                                               String    @id @default(cuid())
   role                                             EventRole
@@ -71,6 +89,7 @@ model events {
   event_participants_event_participants_speakerEventIdToevents event_participants[] @relation("event_participants_speakerEventIdToevents")
   users                                                        users                @relation(fields: [organizerId], references: [id])
   notifications                                                notifications[]
+  myEvents                                                     myEvents[]
 }
 
 model notifications {
@@ -103,6 +122,7 @@ model users {
   event_participants event_participants[]
   events             events[]
   notifications      notifications[]
+  myEvents           myEvents[]
 }
 
 enum EventRole {

@@ -46,6 +46,13 @@ export default function UpcomingEventCard() {
     setIsSheetOpen(true)
   }
 
+  const handleJoinStatusChange = () => {
+    // Refresh the events list when join status changes
+    fetchEvents();
+    // Close the slider to show updated event list
+    setIsSheetOpen(false);
+  };
+
   const fetchEvents = async () => {
     try {
       setLoading(true)
@@ -414,7 +421,12 @@ export default function UpcomingEventCard() {
             </div>
           )}
 
-          <EventSlider event={selectedEvent} isOpen={isSheetOpen} onClose={() => setIsSheetOpen(false)} />
+          <EventSlider 
+            event={selectedEvent} 
+            isOpen={isSheetOpen} 
+            onClose={() => setIsSheetOpen(false)}
+            onJoinStatusChange={handleJoinStatusChange}
+          />
         </div>
       </div>
     </div>

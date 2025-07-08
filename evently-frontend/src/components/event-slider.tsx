@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { registerForEvent, unregisterFromEvent, getEvent, type Event as EventType } from "@/lib/events";
-import dynamic from 'next/dynamic';
+import { JoinEventButton } from "@/components/join-event-button";
+
 import {
   MapPin,
   Users,
@@ -56,39 +54,20 @@ interface Event {
   attendees: number;
   imageUrl: string;
   going: boolean;
-  description?: string;
-  endDate?: string;
-  startDate?: string;
-  tags?: string[];
-  capacity?: number;
+
   requireApproval?: boolean;
-  visibility?: boolean;
-  status?: string;
+  participants?: any[];
+
 }
 
 interface EventSliderProps {
   event: Event | null;
   isOpen: boolean;
   onClose: () => void;
+  onJoinStatusChange?: () => void;
 }
 
-const EventSlider = ({ event, isOpen, onClose }: EventSliderProps) => {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(event?.going || false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [showMap, setShowMap] = useState(false);
-  const [eventDetails, setEventDetails] = useState<EventType | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [attendees, setAttendees] = useState<any[]>([]);
-
-  // Fetch detailed event information when the slider opens
-  useEffect(() => {
-    if (isOpen && event?.id) {
-      fetchEventDetails();
-    }
-  }, [isOpen, event?.id]);
-  
-  // Early return after all hooks are declared
+const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSliderProps) => {
   if (!event) return null;
 
   const fetchEventDetails = async () => {
@@ -492,17 +471,27 @@ const EventSlider = ({ event, isOpen, onClose }: EventSliderProps) => {
 
           {/* Footer Actions */}
           <div className="p-6 border-t border-neutral-700">
-            <div className="space-y-3">
-              {/* Primary Action */}
-              <Button 
-                className={`w-full ${
-                  isRegistered 
-                    ? 'bg-red-600 hover:bg-red-700' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } font-semibold`}
-                onClick={handleRegistration}
-                disabled={isRegistering || Boolean(eventDetails?.capacity && eventDetails.attendeeCount >= eventDetails.capacity)}
-                size="lg"
+            <div className="flex gap-3">
+              <JoinEventButton
+                eventId={event.id}
+                isJoined={false}
+                eventName={event.title}
+                requireApproval={event.requireApproval}
+                onJoinStatusChange={onJoinStatusChange}
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-neutral-600 hover:bg-neutral-800"
+              >
+                <Heart className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-neutral-600 hover:bg-neutral-800"
+
               >
                 {isRegistering && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {eventDetails?.capacity && eventDetails.attendeeCount >= eventDetails.capacity 

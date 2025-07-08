@@ -152,6 +152,38 @@ export default function Navbar() {
                   <span>Discover</span>
                 </Button>
               </Link>
+              {isAuthenticated && (
+                <>
+                  <Link href={"/my-events"} className="text-sm text-foreground">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "rounded-2xl text-sm px-4 h-8 text-gray-300",
+                        pathname === "/my-events"
+                          ? "text-white font-bold"
+                          : "font-regular"
+                      )}
+                    >
+                      <User />
+                      <span>My Events</span>
+                    </Button>
+                  </Link>
+                  <Link href={"/created-events"} className="text-sm text-foreground">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "rounded-2xl text-sm px-4 h-8 text-gray-300",
+                        pathname === "/created-events"
+                          ? "text-white font-bold"
+                          : "font-regular"
+                      )}
+                    >
+                      <Settings />
+                      <span>Created</span>
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -421,6 +453,18 @@ const UserMenu = ({ children }: { children: React.ReactNode }) => {
           </div>
           <Separator />
           <div className="flex flex-col w-full">
+            <Link href="/my-events">
+              <button className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left">
+                <Ticket className="h-4 w-4" />
+                <span>My Events</span>
+              </button>
+            </Link>
+            <Link href="/created-events">
+              <button className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left">
+                <Settings className="h-4 w-4" />
+                <span>Created Events</span>
+              </button>
+            </Link>
             <button
               onClick={() => setIsProfileDialogOpen(true)}
               className="flex text-sm font-semibold items-center gap-2 p-2 hover:bg-foreground/10 rounded-md w-full text-left"

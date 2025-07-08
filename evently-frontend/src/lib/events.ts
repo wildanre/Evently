@@ -5,6 +5,7 @@ export interface Event {
   name: string;
   description?: string;
   location?: string;
+  mapsLink?: string; // Add optional mapsLink field
   visibility: boolean;
   tags: string[];
   imageUrl?: string;

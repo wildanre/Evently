@@ -56,8 +56,6 @@ export function EventOptions({
 }: EventOptionsProps) {
   return (
     <div className="space-y-4">
-      <p className="text-sm font-medium text-white">Event Options</p>
-
       <TicketDialog
         open={ticketsOpen}
         onOpenChange={onTicketsOpenChange}
@@ -68,14 +66,15 @@ export function EventOptions({
         onSave={onTicketsSave}
       />
 
-      <div className="flex items-center justify-between bg-[#1a1a2e] rounded-md p-3">
+      <div className="flex items-center justify-between bg-gray-50 dark:bg-[#1a1a2e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <Users className="h-5 w-5 text-gray-400" />
-          <span className="text-white">Require Approval</span>
+          <Users className="h-5 w-5 text-blue-600" />
+          <span className="text-gray-900 dark:text-white font-medium">Require Approval</span>
         </div>
         <Switch
           checked={requireApproval}
           onCheckedChange={onRequireApprovalChange}
+          className="data-[state=checked]:bg-blue-600"
         />
       </div>
       

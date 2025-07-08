@@ -31,12 +31,14 @@ interface LocationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (locationData: any) => void;
+  currentLocation?: string;
 }
 
 export function LocationDialog({
   open,
   onOpenChange,
   onSave,
+  currentLocation,
 }: LocationDialogProps) {
   const [inputMethod, setInputMethod] = useState<'manual' | 'map'>('manual');
   const [selectedMapLocation, setSelectedMapLocation] = useState<any>(null);
@@ -71,20 +73,29 @@ export function LocationDialog({
   };
 
   return (
-    <div className="flex items-center gap-3 bg-[#1a1a2e] rounded-md p-3">
-      <MapPin className="h-5 w-5 text-gray-400" />
+    <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#1a1a2e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      <MapPin className="h-5 w-5 text-blue-600" />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <Button
             variant="ghost"
-            className="w-full text-left justify-start p-0 h-auto text-white hover:bg-transparent"
+            className="w-full text-left justify-start p-0 h-auto text-gray-900 dark:text-white hover:bg-transparent"
           >
             <div className="flex items-center gap-3">
-              <div>
-                <p className="text-sm font-medium">Add Event Location</p>
-                <p className="text-xs text-gray-500">
-                  Event location or venue
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {currentLocation ? "Edit Event Location" : "Add Event Location *"}
                 </p>
+                <p className="text-xs text-gray-500">
+
+                  {currentLocation || "Offline location or virtual link (required)"}
+
+                </p>
+                {!currentLocation && (
+                  <p className="text-xs text-red-500 mt-1">
+                    Location is required
+                  </p>
+                )}
               </div>
             </div>
           </Button>
@@ -137,17 +148,75 @@ export function LocationDialog({
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-white">
-                  Address
-                </Label>
-                <Textarea
-                  id="address"
-                  name="address"
-                  placeholder="Enter full address"
-                  className="min-h-[80px] resize-none bg-[#1a1a2e] border-gray-700 text-white"
-                  required
-                />
+            </RadioGroup>
+
+            {locationType === "offline" ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="venue-name" className="text-white">
+                    Venue Name
+                  </Label>
+                  <Input
+                    id="venue-name"
+                    name="venueName"
+                    placeholder="Enter venue name"
+                    className="bg-[#1a1a2e] border-gray-700 text-white"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-white">
+                    Address
+                  </Label>
+                  <Textarea
+                    id="address"
+                    name="address"
+                    placeholder="Enter full address"
+                    className="min-h-[80px] resize-none bg-[#1a1a2e] border-gray-700 text-white"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-white">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      placeholder="City"
+                      className="bg-[#1a1a2e] border-gray-700 text-white"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="postal-code" className="text-white">
+                      Postal Code
+                    </Label>
+                    <Input
+                      id="postal-code"
+                      name="postalCode"
+                      placeholder="Postal code"
+                      className="bg-[#1a1a2e] border-gray-700 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maps-link" className="text-white">
+                    Google Maps Link (Optional)
+                  </Label>
+                  <Input
+                    id="maps-link"
+                    name="mapsLink"
+                    type="url"
+                    placeholder="https://maps.google.com/..."
+                    className="bg-[#1a1a2e] border-gray-700 text-white"
+                  />
+                  <p className="text-xs text-gray-400">
+                    Provide a custom Google Maps link for this location. If not provided, one will be auto-generated.
+                  </p>
+                </div>
+
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -194,7 +263,9 @@ export function LocationDialog({
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit">Save Location</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Save Location
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

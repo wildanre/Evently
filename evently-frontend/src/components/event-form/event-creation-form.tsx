@@ -1,40 +1,103 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EventImageUpload } from "./event-image-upload";
+import { ImageUploadErrorBoundary } from "../error-boundary";
 import { EventBasicInfo } from "./event-basic-info";
 import { LocationDialog } from "./location-dialog";
 import { DescriptionDialog } from "./description-dialog";
 import { EventOptions } from "./event-options";
 import { EventDateTimePicker } from "@/components/date-time";
 import { TagsInput } from "./tags-input";
-import { createEvent, CreateEventData } from "@/lib/events";
+import { API_ENDPOINTS } from "@/lib/api";
+import { debugApiConfig } from "@/lib/debug-api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 export default function EventCreationForm() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
   
+  // Debug API configuration on component mount
+  useEffect(() => {
+    debugApiConfig();
+  }, []);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="text-gray-600 dark:text-gray-300">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Login Required</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md">
+              You need to be logged in to create an event. Please sign in to continue.
+            </p>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+              onClick={() => {
+                toast.info("Redirecting to login page...");
+                setTimeout(() => {
+                  window.location.href = '/login';
+                }, 1000);
+              }}
+            >
+              Go to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Basic event info
   const [eventName, setEventName] = useState("");
   const [visibility, setVisibility] = useState("public");
   const [location, setLocation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
-  // Date and time
-  const [startDate, setStartDate] = useState<Date>(
-    new Date("2025-07-01T17:30")
+
+  // Date and time - Set to current date and time
+  const currentDate = new Date();
+  const [startDate, setStartDate] = useState<Date>(currentDate);
+  const [startTime, setStartTime] = useState(
+    `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`
   );
-  const [startTime, setStartTime] = useState("17:30");
-  const [endDate, setEndDate] = useState<Date>(new Date("2025-07-01T18:30"));
-  const [endTime, setEndTime] = useState("18:30");
+  const [endDate, setEndDate] = useState<Date>(
+    new Date(currentDate.getTime() + 60 * 60 * 1000) // 1 hour later
+  );
+  const [endTime, setEndTime] = useState(
+    `${(currentDate.getHours() + 1).toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`
+  );
+
   const [timezone, setTimezone] = useState("GMT+07:00");
 
   // Location
   const [locationOpen, setLocationOpen] = useState(false);
+  const [location, setLocation] = useState<string>("");
+  const [mapsLink, setMapsLink] = useState<string>("");
 
   // Description
   const [description, setDescription] = useState("");
@@ -49,36 +112,41 @@ export default function EventCreationForm() {
   const [capacityLimit, setCapacityLimit] = useState("");
   const [capacityOpen, setCapacityOpen] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleLocationSave = (locationData: any) => {
-    // Convert location object to a readable string
-    let locationString = '';
-    
-    const parts = [];
-    
-    // Check if it's from map selection (has latitude/longitude)
-    if (locationData.latitude && locationData.longitude) {
-      // Map-selected location
-      locationString = locationData.address || locationData.venueName || 'Selected Location';
+    // Store the maps link if provided for offline events
+    if (locationData.type === "offline" && locationData.mapsLink) {
+      setMapsLink(locationData.mapsLink);
     } else {
-      // Manual entry
-      if (locationData.venueName) parts.push(locationData.venueName);
-      if (locationData.address) parts.push(locationData.address);
-      if (locationData.city) parts.push(locationData.city);
-      if (locationData.postalCode) parts.push(locationData.postalCode);
-      locationString = parts.join(', ');
+      setMapsLink(""); // Clear if not offline or no link provided
     }
     
-    setLocation(locationString);
-    setLocationOpen(false);
+    // For offline events, combine venue name and address into a single location string
+    if (locationData.type === "offline") {
+      const locationParts = [];
+      if (locationData.venueName) locationParts.push(locationData.venueName);
+      if (locationData.address) locationParts.push(locationData.address);
+      if (locationData.city) locationParts.push(locationData.city);
+      setLocation(locationParts.join(", "));
+    } else {
+      // For virtual events, use the meeting platform and link
+      setLocation(`${locationData.meetingPlatform || "Virtual"}: ${locationData.meetingLink || ""}`);
+    }
+    console.log("Location saved:", locationData);
+
   };
 
   const handleDescriptionSave = (desc: string) => {
     setDescription(desc);
-    setDescriptionOpen(false);
+
+    console.log("Description saved:", desc);
   };
 
   const handleTicketsSave = (ticketData: { type: string; price: string }) => {
+    setTicketType(ticketData.type);
+    setTicketPrice(ticketData.price);
     console.log("Tickets saved:", ticketData);
   };
 
@@ -86,96 +154,304 @@ export default function EventCreationForm() {
     capacity: string;
     limit: string;
   }) => {
+    setCapacity(capacityData.capacity);
+    setCapacityLimit(capacityData.limit);
     console.log("Capacity saved:", capacityData);
   };
 
+  // Validation function
+  const isFormValid = () => {
+    if (!eventName.trim()) return false;
+    if (!description.trim()) return false; // Description is required
+    if (!location.trim()) return false; // Location is required
+    if (startDate >= endDate) {
+      if (startDate.toDateString() === endDate.toDateString()) {
+        // Same day, check time
+        const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+        const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+        if (startTimeMinutes >= endTimeMinutes) return false;
+      } else {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Get validation errors for display
+  const getValidationErrors = () => {
+    const errors = [];
+    if (!eventName.trim()) errors.push("Event name");
+    if (!description.trim()) errors.push("Description");
+    if (!location.trim()) errors.push("Location");
+    
+    if (startDate >= endDate) {
+      if (startDate.toDateString() === endDate.toDateString()) {
+        const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+        const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+        if (startTimeMinutes >= endTimeMinutes) {
+          errors.push("End time must be after start time");
+        }
+      } else {
+        errors.push("End date must be after start date");
+      }
+    }
+    
+    return errors;
+  };
+
+  // Update end date when start date changes
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (date) {
+      setStartDate(date);
+      // If end date is before start date, update it
+      if (endDate < date) {
+        setEndDate(new Date(date.getTime() + 60 * 60 * 1000)); // 1 hour later
+      }
+    }
+  };
+
+  // Update end time when start time changes
+  const handleStartTimeChange = (time: string) => {
+    setStartTime(time);
+    // If same day and end time is before start time, update end time
+    if (startDate.toDateString() === endDate.toDateString()) {
+      const startTimeMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+      const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+      if (endTimeMinutes <= startTimeMinutes) {
+        const newEndTimeMinutes = startTimeMinutes + 60; // 1 hour later
+        const hours = Math.floor(newEndTimeMinutes / 60) % 24;
+        const minutes = newEndTimeMinutes % 60;
+        setEndTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+      }
+    }
+  };
+
   const handleCreateEvent = async () => {
-    if (!eventName.trim()) {
-      toast.error("Event name is required");
+    const validationErrors = getValidationErrors();
+    
+    if (validationErrors.length > 0) {
+      toast.error("Please fill in all required fields", {
+        description: validationErrors.join(", "),
+        duration: 5000,
+      });
       return;
     }
 
-    setIsLoading(true);
+    setIsCreating(true); // Start loading
+
+    // Create ISO date strings for backend
+    const startDateTime = new Date(startDate);
+    const [startHours, startMinutes] = startTime.split(':');
+    startDateTime.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
+
+    const endDateTime = new Date(endDate);
+    const [endHours, endMinutes] = endTime.split(':');
+    endDateTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+    // Convert capacity to number if not unlimited
+    const eventCapacity = capacity === "unlimited" ? null : parseInt(capacityLimit) || null;
+
+    // Create payload exactly matching backend API
+    const eventPayload = {
+      name: eventName.trim(),
+      description: description.trim(),
+      location: location.trim(),
+      mapsLink: mapsLink.trim() || undefined, // Only send if provided
+      startDate: startDateTime.toISOString(),
+      endDate: endDateTime.toISOString(),
+      capacity: eventCapacity,
+      tags: tags.filter(tag => tag.trim() !== ""), // Remove empty tags
+      visibility: visibility === "public", // Convert to boolean
+      requireApproval: requireApproval,
+      imageUrl: imageUrl.trim() || ""
+    };
+    
+    console.log("Creating event with payload:", eventPayload);
     
     try {
-      // Combine date and time for proper ISO string
-      const combinedStartDate = new Date(startDate);
-      const [startHour, startMinute] = startTime.split(':');
-      combinedStartDate.setHours(parseInt(startHour), parseInt(startMinute));
-      
-      const combinedEndDate = new Date(endDate);
-      const [endHour, endMinute] = endTime.split(':');
-      combinedEndDate.setHours(parseInt(endHour), parseInt(endMinute));
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        toast.error("Authentication required", {
+          description: "Please log in to create an event.",
+          action: {
+            label: "Login",
+            onClick: () => window.location.href = '/login'
+          }
+        });
+        return;
+      }
 
-      const eventData: CreateEventData = {
-        name: eventName,
-        description: description || undefined,
-        location: location || undefined,
-        startDate: combinedStartDate.toISOString(),
-        endDate: combinedEndDate.toISOString(),
-        visibility: visibility === "public",
-        requireApproval,
-        capacity: capacity === "unlimited" ? undefined : parseInt(capacityLimit) || undefined,
-        tags,
-        imageUrl: imageUrl || undefined,
-      };
+      // Get auth token from localStorage
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error("Authentication token not found", {
+          description: "Please log in again.",
+          action: {
+            label: "Login",
+            onClick: () => window.location.href = '/login'
+          }
+        });
+        return;
+      }
 
-      const createdEvent = await createEvent(eventData);
-      toast.success("Event created successfully!");
-      
-      // Redirect to the created event or events page
-      router.push(`/events`);
+      // Send data to backend API with authorization
+      const response = await fetch(API_ENDPOINTS.EVENTS, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(eventPayload)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Event created successfully:", result);
+        
+        toast.success("Event created successfully!", {
+          description: `${eventName} has been created and is now live.`,
+          duration: 5000,
+        });
+        
+        // Reset form after successful creation
+        setEventName("");
+        setDescription("");
+        setLocation("");
+        setTags([]);
+        setImageUrl("");
+        // Reset other fields as needed...
+        
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to create event:", errorData);
+        
+        if (response.status === 400) {
+          // Handle validation errors from backend
+          if (errorData.errors) {
+            const backendErrors = errorData.errors.map((err: any) => err.msg).join(', ');
+            toast.error("Validation errors", {
+              description: backendErrors,
+              duration: 5000,
+            });
+          } else {
+            toast.error("Bad request", {
+              description: errorData.error || "Please check your input and try again.",
+              duration: 5000,
+            });
+          }
+        } else if (response.status === 401) {
+          toast.error("Authentication required", {
+            description: "Please log in first.",
+            action: {
+              label: "Login",
+              onClick: () => window.location.href = '/login'
+            }
+          });
+        } else {
+          toast.error("Failed to create event", {
+            description: "Please try again later.",
+            duration: 5000,
+          });
+        }
+      }
     } catch (error) {
-      console.error('Error creating event:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create event');
+      console.error("Network error:", error);
+      toast.error("Network error", {
+        description: "Please check your connection and try again.",
+        duration: 5000,
+      });
     } finally {
-      setIsLoading(false);
+      setIsCreating(false); // Stop loading
     }
   };
 
   return (
-    <div className="w-full mx-4 max-w-5xl grid md:grid-cols-[1fr_1.5fr] gap-6 bg-gradient-to-b from-neutral-900 to-black mt-4 p-6 rounded-lg">
-      <EventImageUpload />
+    <div className="w-full mx-4 max-w-6xl">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden">
+        <div className="grid md:grid-cols-[1fr_1.5fr] gap-0">
+          {/* Left Column - Image Upload */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-6">
+            <ImageUploadErrorBoundary>
+              <EventImageUpload 
+                imageUrl={imageUrl}
+                onImageUpload={setImageUrl}
+              />
+            </ImageUploadErrorBoundary>
+          </div>
 
-      <div className="flex flex-col gap-5">
-        <EventBasicInfo
-          eventName={eventName}
-          visibility={visibility}
-          onEventNameChange={setEventName}
-          onVisibilityChange={setVisibility}
-        />
+          {/* Right Column - Form Content */}
+          <div className="p-8">
+            <div className="flex flex-col gap-8">
+              {/* Basic Information Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Basic Information
+                </h2>
+                <EventBasicInfo
+                  eventName={eventName}
+                  visibility={visibility}
+                  onEventNameChange={setEventName}
+                  onVisibilityChange={setVisibility}
+                />
+              </div>
 
-        <EventDateTimePicker
-          startDate={startDate}
-          startTime={startTime}
-          endDate={endDate}
-          endTime={endTime}
-          timezone={timezone}
-          onStartDateChange={(date) => {
-            if (date) setStartDate(date);
-          }}
-          onStartTimeChange={setStartTime}
-          onEndDateChange={(date) => {
-            if (date) setEndDate(date);
-          }}
-          onEndTimeChange={setEndTime}
-          onTimezoneChange={setTimezone}
-        />
+              {/* Date & Time Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Date & Time
+                </h2>
+                <EventDateTimePicker
+                  startDate={startDate}
+                  startTime={startTime}
+                  endDate={endDate}
+                  endTime={endTime}
+                  timezone={timezone}
+                  onStartDateChange={handleStartDateChange}
+                  onStartTimeChange={handleStartTimeChange}
+                  onEndDateChange={(date) => {
+                    if (date) setEndDate(date);
+                  }}
+                  onEndTimeChange={setEndTime}
+                  onTimezoneChange={setTimezone}
+                />
+              </div>
 
-        <LocationDialog
-          open={locationOpen}
-          onOpenChange={setLocationOpen}
-          onSave={handleLocationSave}
-        />
+              {/* Location & Description Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Location & Description
+                </h2>
+                <div className="space-y-3">
+                  <LocationDialog
+                    open={locationOpen}
+                    onOpenChange={setLocationOpen}
+                    onSave={handleLocationSave}
+                    currentLocation={location}
+                  />
 
-        <DescriptionDialog
-          open={descriptionOpen}
-          onOpenChange={setDescriptionOpen}
-          description={description}
-          onDescriptionChange={setDescription}
-          onSave={handleDescriptionSave}
-        />
-        <TagsInput tags={tags} onTagsChange={setTags} />
+                  <DescriptionDialog
+                    open={descriptionOpen}
+                    onOpenChange={setDescriptionOpen}
+                    description={description}
+                    onDescriptionChange={setDescription}
+                    onSave={handleDescriptionSave}
+                  />
+                </div>
+              </div>
+
+              {/* Additional Details Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Additional Details
+                </h2>
+                <TagsInput tags={tags} onTagsChange={setTags} />
+              </div>
+
+              {/* Event Options Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Event Options
+                </h2>
 
         <EventOptions
           requireApproval={requireApproval}
@@ -195,19 +471,27 @@ export default function EventCreationForm() {
           onCapacityLimitChange={setCapacityLimit}
           onCapacitySave={handleCapacitySave}
         />
+              </div>
 
         <Button
           className={cn(
-            "w-full mt-4 rounded-md py-6",
-            eventName && !isLoading
-              ? "bg-white text-black hover:bg-gray-200"
-              : "bg-gray-800 text-gray-400"
+            "w-full mt-6 rounded-lg py-6 text-base font-semibold transition-all duration-200 flex items-center justify-center gap-2",
+            isFormValid() && !isCreating
+              ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl"
+              : "bg-gray-700 text-gray-400 cursor-not-allowed"
           )}
-          disabled={!eventName || isLoading}
+          disabled={!isFormValid() || isCreating}
           onClick={handleCreateEvent}
         >
-          {isLoading ? "Creating Event..." : "Create Event"}
+          {isCreating && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          )}
+          {isCreating ? "Creating Event..." : "Create Event"}
+
         </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { JoinEventButton } from "@/components/join-event-button";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import dynamic from 'next/dynamic';
 
 import {
   MapPin,
@@ -54,10 +57,11 @@ interface Event {
   attendees: number;
   imageUrl: string;
   going: boolean;
-
+  startDate?: string;
+  endDate?: string;
+  description?: string;
   requireApproval?: boolean;
   participants?: any[];
-
 }
 
 interface EventSliderProps {
@@ -68,9 +72,48 @@ interface EventSliderProps {
 }
 
 const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSliderProps) => {
-  if (!event) return null;
+  const [loading, setLoading] = useState(false);
+  const [eventDetails, setEventDetails] = useState<any>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [showMap, setShowMap] = useState(false);
 
-  const fetchEventDetails = async () => {
+  // Mock API functions - replace with real API calls
+  const getEvent = useCallback(async (eventId: string) => {
+    // Mock implementation - replace with real API call
+    return {
+      ...event,
+      attendeeCount: event?.attendees || 0,
+      status: 'upcoming',
+      tags: ['tech', 'networking'],
+      capacity: 100
+    };
+  }, [event]);
+
+  const registerForEvent = useCallback(async (eventId: string) => {
+    // Mock implementation - replace with real API call
+    console.log('Registering for event:', eventId);
+  }, []);
+
+  const unregisterFromEvent = useCallback(async (eventId: string) => {
+    // Mock implementation - replace with real API call
+    console.log('Unregistering from event:', eventId);
+  }, []);
+
+  const generateMockAttendees = useCallback((count: number) => {
+    return Array.from({ length: Math.min(count, 20) }, (_, i) => ({
+      id: `attendee-${i}`,
+      name: `User ${String.fromCharCode(65 + (i % 26))}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=attendee-${i}`,
+      role: i === 0 ? 'Organizer' : i < 3 ? 'Speaker' : 'Attendee',
+    }));
+  }, []);
+
+  const fetchEventDetails = useCallback(async () => {
+    if (!event) return;
+    
     setLoading(true);
     try {
       const details = await getEvent(event.id);
@@ -82,16 +125,16 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     } finally {
       setLoading(false);
     }
-  };
+  }, [event, getEvent, generateMockAttendees]);
 
-  const generateMockAttendees = (count: number) => {
-    return Array.from({ length: Math.min(count, 20) }, (_, i) => ({
-      id: `attendee-${i}`,
-      name: `User ${String.fromCharCode(65 + (i % 26))}`,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=attendee-${i}`,
-      role: i === 0 ? 'Organizer' : i < 3 ? 'Speaker' : 'Attendee',
-    }));
-  };
+  useEffect(() => {
+    if (isOpen && event) {
+      fetchEventDetails();
+    }
+  }, [isOpen, event, fetchEventDetails]);
+
+  // Return early AFTER all hooks are called
+  if (!event) return null;
 
   const handleRegistration = async () => {
     setIsRegistering(true);
@@ -395,7 +438,7 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
                     <span className="text-sm">Tags</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {eventDetails.tags.map((tag, index) => (
+                    {eventDetails.tags.map((tag: string, index: number) => (
                       <Badge key={index} variant="outline" className="capitalize">
                         {tag}
                       </Badge>

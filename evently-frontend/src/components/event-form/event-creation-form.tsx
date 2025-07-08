@@ -75,7 +75,6 @@ export default function EventCreationForm() {
   // Basic event info
   const [eventName, setEventName] = useState("");
   const [visibility, setVisibility] = useState("public");
-  const [location, setLocation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
 
@@ -112,7 +111,6 @@ export default function EventCreationForm() {
   const [capacityLimit, setCapacityLimit] = useState("");
   const [capacityOpen, setCapacityOpen] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
 
   const handleLocationSave = (locationData: any) => {

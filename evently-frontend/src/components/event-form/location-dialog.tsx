@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogClose,
@@ -87,9 +86,7 @@ export function LocationDialog({
                   {currentLocation ? "Edit Event Location" : "Add Event Location *"}
                 </p>
                 <p className="text-xs text-gray-500">
-
                   {currentLocation || "Offline location or virtual link (required)"}
-
                 </p>
                 {!currentLocation && (
                   <p className="text-xs text-red-500 mt-1">
@@ -110,7 +107,6 @@ export function LocationDialog({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-
             <div className="space-y-4">
               {/* Input Method Selection */}
               <div className="grid grid-cols-2 gap-4">
@@ -136,128 +132,98 @@ export function LocationDialog({
               
               {inputMethod === 'manual' ? (
                 <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="venue-name" className="text-white">
-                  Venue Name
-                </Label>
-                <Input
-                  id="venue-name"
-                  name="venueName"
-                  placeholder="Enter venue name"
-                  className="bg-[#1a1a2e] border-gray-700 text-white"
-                  required
-                />
-              </div>
-            </RadioGroup>
-
-            {locationType === "offline" ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="venue-name" className="text-white">
-                    Venue Name
-                  </Label>
-                  <Input
-                    id="venue-name"
-                    name="venueName"
-                    placeholder="Enter venue name"
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-white">
-                    Address
-                  </Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    placeholder="Enter full address"
-                    className="min-h-[80px] resize-none bg-[#1a1a2e] border-gray-700 text-white"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city" className="text-white">
-                      City
+                    <Label htmlFor="venue-name" className="text-white">
+                      Venue Name
                     </Label>
                     <Input
-                      id="city"
-                      name="city"
-                      placeholder="City"
+                      id="venue-name"
+                      name="venueName"
+                      placeholder="Enter venue name"
                       className="bg-[#1a1a2e] border-gray-700 text-white"
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="postal-code" className="text-white">
-                      Postal Code
+                    <Label htmlFor="address" className="text-white">
+                      Address
                     </Label>
-                    <Input
-                      id="postal-code"
-                      name="postalCode"
-                      placeholder="Postal code"
+                    <Textarea
+                      id="address"
+                      name="address"
+                      placeholder="Enter venue address"
                       className="bg-[#1a1a2e] border-gray-700 text-white"
+                      required
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maps-link" className="text-white">
-                    Google Maps Link (Optional)
-                  </Label>
-                  <Input
-                    id="maps-link"
-                    name="mapsLink"
-                    type="url"
-                    placeholder="https://maps.google.com/..."
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                  />
-                  <p className="text-xs text-gray-400">
-                    Provide a custom Google Maps link for this location. If not provided, one will be auto-generated.
-                  </p>
-                </div>
 
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city" className="text-white">
-                    City
-                  </Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    placeholder="City"
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                    required
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className="text-white">
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        placeholder="City"
+                        className="bg-[#1a1a2e] border-gray-700 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="postal-code" className="text-white">
+                        Postal Code
+                      </Label>
+                      <Input
+                        id="postal-code"
+                        name="postalCode"
+                        placeholder="Postal code"
+                        className="bg-[#1a1a2e] border-gray-700 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Google Maps Link Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="maps-link" className="text-white">
+                      Google Maps Link (Optional)
+                    </Label>
+                    <div className="relative">
+                      <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="maps-link"
+                        name="mapsLink"
+                        type="url"
+                        placeholder="https://maps.google.com/..."
+                        className="bg-[#1a1a2e] border-gray-700 text-white pl-10"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Provide a custom Google Maps link for this location. If not provided, one will be auto-generated.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="postal-code" className="text-white">
-                    Postal Code
-                  </Label>
-                  <Input
-                    id="postal-code"
-                    name="postalCode"
-                    placeholder="Postal code"
-                    className="bg-[#1a1a2e] border-gray-700 text-white"
-                  />
-                </div>
-                </div>
-              </div>
               ) : (
                 <div className="space-y-4">
-                  <MapLocationPicker
-                    onLocationSelect={(location) => {
-                      console.log('Selected location:', location);
-                      setSelectedMapLocation(location);
-                    }}
-                    className=""
-                  />
+                  <div className="text-sm text-gray-400">
+                    Click on the map to select your event location
+                  </div>
+                  <div className="h-64 rounded-lg overflow-hidden">
+                    <MapLocationPicker
+                      onLocationSelect={(location) => setSelectedMapLocation(location)}
+                    />
+                  </div>
+                  {selectedMapLocation && (
+                    <div className="bg-gray-800 p-3 rounded-lg">
+                      <p className="text-white font-medium">{selectedMapLocation.displayName}</p>
+                      <p className="text-gray-400 text-sm">{selectedMapLocation.address}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="flex gap-2">
               <DialogClose asChild>
                 <Button variant="outline" type="button">
                   Cancel

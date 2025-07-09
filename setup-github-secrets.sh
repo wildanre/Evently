@@ -45,9 +45,6 @@ echo -e "${YELLOW}Enter your Vercel Token:${NC}"
 read -s vercel_token
 gh secret set VERCEL_TOKEN --body "$vercel_token"
 
-echo -e "${YELLOW}🔑 Mengatur Vercel Project ID...${NC}"
-gh secret set VERCEL_PROJECT_ID --body "prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad"
-
 echo -e "${YELLOW}🔑 Mengatur NextAuth Secret...${NC}"
 if [ -n "$NEXTAUTH_SECRET" ]; then
     gh secret set NEXTAUTH_SECRET --body "$NEXTAUTH_SECRET"
@@ -85,7 +82,6 @@ echo -e "${GREEN}✅ Semua GitHub Secrets berhasil diatur!${NC}"
 echo ""
 echo -e "${BLUE}📊 Secrets yang telah diatur:${NC}"
 echo -e "   ✅ VERCEL_TOKEN"
-echo -e "   ✅ VERCEL_PROJECT_ID"
 echo -e "   ✅ NEXTAUTH_SECRET"
 echo -e "   ✅ GOOGLE_CLIENT_ID"
 echo -e "   ✅ GOOGLE_CLIENT_SECRET"

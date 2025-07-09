@@ -11,6 +11,13 @@ on:
       - 'evently-frontend/**'
   workflow_dispatch:
 
+# Add permissions needed for GitHub API operations
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  repository-projects: write
+
 jobs:
   test:
     name: Test

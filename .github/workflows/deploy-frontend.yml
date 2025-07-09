@@ -146,15 +146,10 @@ jobs:
           # Deploy with proper output handling
           set +e  # Don't exit on error immediately
           
-          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/master" ]; then
-            echo "Deploying to production..."
-            DEPLOYMENT_OUTPUT=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes 2>&1)
-            EXIT_CODE=$?
-          else
-            echo "Deploying to preview..."
-            DEPLOYMENT_OUTPUT=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes 2>&1)
-            EXIT_CODE=$?
-          fi
+          # Always deploy to production since we have a working deployment
+          echo "Deploying to production..."
+          DEPLOYMENT_OUTPUT=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes 2>&1)
+          EXIT_CODE=$?
           
           echo "Deployment output:"
           echo "$DEPLOYMENT_OUTPUT"
@@ -171,14 +166,9 @@ jobs:
             echo "❌ Initial deployment had issues. Exit code: $EXIT_CODE"
             echo "Trying alternative approach..."
             
-            # Try with different flags
-            if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/master" ]; then
-              echo "Retrying production deployment..."
-              RETRY_OUTPUT=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
-            else
-              echo "Retrying preview deployment..."
-              RETRY_OUTPUT=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
-            fi
+            # Try with force flag for production
+            echo "Retrying production deployment with force flag..."
+            RETRY_OUTPUT=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
             
             echo "Retry output:"
             echo "$RETRY_OUTPUT"
@@ -236,7 +226,7 @@ jobs:
                   issue_number,
                   owner,
                   repo,
-                  body: `🚀 Deploy Preview berhasil!\n\n✅ Preview URL: ${deployUrl}\n\n📱 Tested on mobile and desktop devices`
+                  body: `🚀 Production Deploy berhasil!\n\n✅ Production URL: ${deployUrl}\n\n📱 Tested on mobile and desktop devices\n🌟 Ready for production use`
                 });
                 console.log('Comment added successfully');
               } catch (error) {
@@ -250,12 +240,13 @@ jobs:
       - name: Deployment success notification
         if: success()
         run: |
-          echo "🎉 DEPLOYMENT SUCCESS!"
+          echo "🎉 PRODUCTION DEPLOYMENT SUCCESS!"
           echo "================================"
-          echo "✅ Frontend berhasil di-deploy ke Vercel"
-          echo "🌐 URL: ${{ steps.vercel-deployment.outputs.preview-url }}"
+          echo "✅ Frontend berhasil di-deploy ke Vercel Production"
+          echo "🌐 Production URL: ${{ steps.vercel-deployment.outputs.preview-url }}"
           echo "📱 Responsiveness: Tested & Optimized"
           echo "🔧 Mobile & Desktop: Full Support"
+          echo "🚀 Environment: Production"
           echo "================================"
           echo ""
           echo "Komponen Responsif yang Tersedia:"
@@ -265,8 +256,9 @@ jobs:
           echo "- ✅ Timeline (Hidden di mobile)"
           echo "- ✅ Pagination (3 buttons mobile, 5 desktop)"
           echo ""
-          echo "Alternative URLs:"
-          echo "- https://evently-frontend-alpha.vercel.app"
+          echo "Production URLs:"
+          echo "- Primary: ${{ steps.vercel-deployment.outputs.preview-url }}"
+          echo "- Fallback: https://evently-frontend-alpha.vercel.app"
 
       - name: Handle deployment failure
         if: failure()

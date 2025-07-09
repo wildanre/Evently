@@ -26,8 +26,8 @@ We are now using a simplified approach that:
 
 2. **Run the Setup Script**: Use the provided script to set up all secrets at once:
    ```bash
-   chmod +x setup-github-secrets-updated.sh
-   ./setup-github-secrets-updated.sh
+   chmod +x setup-github-secrets.sh
+   ./setup-github-secrets.sh
    ```
 
 ### 2. Vercel Setup

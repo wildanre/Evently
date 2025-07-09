@@ -70,6 +70,7 @@ jobs:
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-org-id: team_hsodXjGi5ndO7HPhfmEtYOfF
           vercel-project-name: evently
           working-directory: ./evently-frontend
           vercel-args: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && '--prod' || '' }}

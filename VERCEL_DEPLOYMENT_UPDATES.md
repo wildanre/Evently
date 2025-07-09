@@ -9,6 +9,7 @@
   - Set `VERCEL_ORG_ID` to `team_hsodXjGi5ndO7HPhfmEtYOfF` explicitly
   - Set `VERCEL_PROJECT_ID` to `prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad` explicitly
 - ✅ **Ensured consistent configuration** across all deployment steps
+- ✅ **Removed Lighthouse check job** from workflow to simplify deployment
 
 ### 2. Documentation Updates
 
@@ -35,12 +36,13 @@ Additionally, each Vercel CLI operation (pull, build, deploy) has these environm
 
 ## 🔧 Troubleshooting
 
-If deployment issues persist, try:
+Jika terjadi masalah saat deployment, coba:
 
-1. **Verify Vercel Token**: Ensure the VERCEL_TOKEN secret in GitHub is valid and has permissions for the team.
-2. **Check Team Access**: Confirm that the user who generated the Vercel token has access to the specified team.
-3. **Project Linking**: You may need to run `vercel link` locally again if project configuration has changed.
-4. **Team URL**: The team URL is `wildanus-projects-c54861c9`. Verify this matches what you see in Vercel dashboard.
+1. **Verify Vercel Token**: Pastikan VERCEL_TOKEN secret di GitHub valid dan memiliki izin untuk team.
+2. **Check Team Access**: Konfirmasi bahwa user yang membuat Vercel token memiliki akses ke team yang ditentukan.
+3. **Project Linking**: Anda mungkin perlu menjalankan `vercel link` secara lokal lagi jika konfigurasi project berubah.
+4. **Team URL**: Team URL adalah `wildanus-projects-c54861c9`. Verifikasi ini sesuai dengan yang Anda lihat di dashboard Vercel.
+5. **Path Error (spawn sh ENOENT)**: Jika muncul error "spawn sh ENOENT", gunakan path eksplisit ke shell dengan menambahkan `export PATH="/bin:/usr/bin:$PATH"` sebelum perintah Vercel.
 
 ## 📊 Important Information
 

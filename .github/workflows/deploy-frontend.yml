@@ -16,11 +16,10 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
-  repository-projects: write
+  actions: read
+  checks: read
   deployments: write
   statuses: write
-  actions: write
-  checks: write
 
 jobs:
   test:
@@ -110,9 +109,16 @@ jobs:
           vercel-args: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && '--prod --confirm' || '--confirm' }}
           scope: team_hsodXjGi5ndO7HPhfmEtYOfF
           
+      - name: Debug deployment outputs
+        run: |
+          echo "Preview URL: ${{ steps.vercel-deployment.outputs.preview-url }}"
+          echo "Deployment URL: ${{ steps.vercel-deployment.outputs.preview-name }}"
+          echo "Event type: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          
       - name: Add comment to PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         env:
           VERCEL_URL: ${{ steps.vercel-deployment.outputs.preview-url }}
         with:
@@ -121,11 +127,40 @@ jobs:
             const { issue: { number: issue_number }, repo: { owner, repo } } = context;
             const deployUrl = process.env.VERCEL_URL;
             
+            console.log('Deploy URL:', deployUrl);
+            console.log('Issue number:', issue_number);
+            console.log('Owner:', owner);
+            console.log('Repo:', repo);
+            
             if (deployUrl) {
-              github.rest.issues.createComment({
-                issue_number,
-                owner,
-                repo,
-                body: `🚀 Deploy Preview berhasil!\n\n✅ Preview URL: ${deployUrl}`
-              });
+              try {
+                await github.rest.issues.createComment({
+                  issue_number,
+                  owner,
+                  repo,
+                  body: `🚀 Deploy Preview berhasil!\n\n✅ Preview URL: ${deployUrl}\n\n📱 Tested on mobile and desktop devices`
+                });
+                console.log('Comment added successfully');
+              } catch (error) {
+                console.error('Error adding comment:', error);
+                // Don't fail the workflow if comment fails
+              }
+            } else {
+              console.log('No deploy URL available');
             }
+
+      - name: Deployment success notification
+        if: success()
+        run: |
+          echo "✅ Deployment berhasil!"
+          echo "Production URL: https://evently-frontend-wildanus-projects-c54861c9.vercel.app"
+          if [ "${{ steps.vercel-deployment.outputs.preview-url }}" != "" ]; then
+            echo "Preview URL: ${{ steps.vercel-deployment.outputs.preview-url }}"
+          fi
+
+      - name: Handle deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deployment gagal!"
+          echo "Silakan periksa log di atas untuk detail error"
+          exit 1

@@ -217,7 +217,7 @@ export default function UpcomingEventCard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
-          <p className="text-red-400">Error: {error}</p>
+          <p className="text-red-500">Error: {error}</p>
           <div className="space-x-4">
             <Button onClick={fetchEvents} variant="outline">
               Try Again

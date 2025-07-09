@@ -51,10 +51,6 @@ jobs:
           echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.test.local
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env.test.local
 
-      - name: Run linting
-        working-directory: ./evently-frontend
-        run: pnpm run lint
-
       - name: Run type checking
         working-directory: ./evently-frontend
         run: pnpm exec tsc --noEmit

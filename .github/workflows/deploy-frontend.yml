@@ -17,6 +17,10 @@ permissions:
   pull-requests: write
   issues: write
   repository-projects: write
+  deployments: write
+  statuses: write
+  actions: write
+  checks: write
 
 jobs:
   test:
@@ -97,10 +101,31 @@ jobs:
       # Deploy to Vercel
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
+        id: vercel-deployment
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          github-token: ${{ github.token }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           vercel-project-name: evently
           working-directory: ./evently-frontend
           vercel-args: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && '--prod --confirm' || '--confirm' }}
           scope: team_hsodXjGi5ndO7HPhfmEtYOfF
+          
+      - name: Add comment to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        env:
+          VERCEL_URL: ${{ steps.vercel-deployment.outputs.preview-url }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { issue: { number: issue_number }, repo: { owner, repo } } = context;
+            const deployUrl = process.env.VERCEL_URL;
+            
+            if (deployUrl) {
+              github.rest.issues.createComment({
+                issue_number,
+                owner,
+                repo,
+                body: `🚀 Deploy Preview berhasil!\n\n✅ Preview URL: ${deployUrl}`
+              });
+            }

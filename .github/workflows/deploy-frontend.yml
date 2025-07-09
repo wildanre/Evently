@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./evently-frontend
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Create test environment file
         working-directory: ./evently-frontend

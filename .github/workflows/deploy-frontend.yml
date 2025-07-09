@@ -116,6 +116,21 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      - name: Install dependencies
+        working-directory: ./evently-frontend
+        run: pnpm install
+
+      - name: Create .env file
+        working-directory: ./evently-frontend
+        run: |
+          echo "NEXT_PUBLIC_API_URL=https://evently-backend-amber.vercel.app" >> .env
+          echo "NEXT_PUBLIC_API_BASE_URL=https://evently-backend-amber.vercel.app/api" >> .env
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
+          echo "NEXTAUTH_URL=https://evently-nine-iota.vercel.app" >> .env
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+
       - name: Pull Vercel Environment Information
         working-directory: ./evently-frontend
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
@@ -125,7 +140,7 @@ jobs:
 
       - name: Build Project Artifacts
         working-directory: ./evently-frontend
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        run: VERCEL_ORG_ID=$VERCEL_ORG_ID VERCEL_PROJECT_ID=$VERCEL_PROJECT_ID vercel build --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
           VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
@@ -184,6 +199,21 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      - name: Install dependencies
+        working-directory: ./evently-frontend
+        run: pnpm install
+
+      - name: Create .env file
+        working-directory: ./evently-frontend
+        run: |
+          echo "NEXT_PUBLIC_API_URL=https://evently-backend-amber.vercel.app" >> .env
+          echo "NEXT_PUBLIC_API_BASE_URL=https://evently-backend-amber.vercel.app/api" >> .env
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
+          echo "NEXTAUTH_URL=https://evently-nine-iota.vercel.app" >> .env
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+
       - name: Pull Vercel Environment Information
         working-directory: ./evently-frontend
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
@@ -193,7 +223,7 @@ jobs:
 
       - name: Build Project Artifacts
         working-directory: ./evently-frontend
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: VERCEL_ORG_ID=$VERCEL_ORG_ID VERCEL_PROJECT_ID=$VERCEL_PROJECT_ID vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
           VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad

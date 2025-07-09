@@ -78,18 +78,37 @@ export default function EventCreationForm() {
   const [imageUrl, setImageUrl] = useState("");
 
 
-  // Date and time - Set to current date and time
-  const currentDate = new Date();
-  const [startDate, setStartDate] = useState<Date>(currentDate);
-  const [startTime, setStartTime] = useState(
-    `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`
-  );
-  const [endDate, setEndDate] = useState<Date>(
-    new Date(currentDate.getTime() + 60 * 60 * 1000) // 1 hour later
-  );
-  const [endTime, setEndTime] = useState(
-    `${(currentDate.getHours() + 1).toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`
-  );
+  // Date and time - Initialize with current date and future times
+  const initializeCurrentDate = () => {
+    const now = new Date();
+    // Round to next hour
+    now.setMinutes(0, 0, 0);
+    now.setHours(now.getHours() + 1);
+    console.log("Initialized start date:", now);
+    return now;
+  };
+
+  const initializeEndDate = (startDate: Date) => {
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + 1);
+    console.log("Initialized end date:", endDate);
+    return endDate;
+  };
+
+  const [startDate, setStartDate] = useState<Date>(() => initializeCurrentDate());
+  const [startTime, setStartTime] = useState(() => {
+    const date = initializeCurrentDate();
+    return `${date.getHours().toString().padStart(2, '0')}:00`;
+  });
+  const [endDate, setEndDate] = useState<Date>(() => {
+    const start = initializeCurrentDate();
+    return initializeEndDate(start);
+  });
+  const [endTime, setEndTime] = useState(() => {
+    const start = initializeCurrentDate();
+    const end = initializeEndDate(start);
+    return `${end.getHours().toString().padStart(2, '0')}:00`;
+  });
 
   const [timezone, setTimezone] = useState("GMT+07:00");
 
@@ -162,11 +181,18 @@ export default function EventCreationForm() {
     if (!eventName.trim()) return false;
     if (!description.trim()) return false; // Description is required
     if (!location.trim()) return false; // Location is required
+    
+    // Check if dates are valid and in the future
+    const now = new Date();
+    if (startDate < now) return false;
+    
     if (startDate >= endDate) {
       if (startDate.toDateString() === endDate.toDateString()) {
         // Same day, check time
-        const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-        const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const [endHours, endMinutes] = endTime.split(':').map(Number);
+        const startTimeMinutes = startHours * 60 + startMinutes;
+        const endTimeMinutes = endHours * 60 + endMinutes;
         if (startTimeMinutes >= endTimeMinutes) return false;
       } else {
         return false;
@@ -182,10 +208,17 @@ export default function EventCreationForm() {
     if (!description.trim()) errors.push("Description");
     if (!location.trim()) errors.push("Location");
     
+    const now = new Date();
+    if (startDate < now) {
+      errors.push("Start date must be in the future");
+    }
+    
     if (startDate >= endDate) {
       if (startDate.toDateString() === endDate.toDateString()) {
-        const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-        const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const [endHours, endMinutes] = endTime.split(':').map(Number);
+        const startTimeMinutes = startHours * 60 + startMinutes;
+        const endTimeMinutes = endHours * 60 + endMinutes;
         if (startTimeMinutes >= endTimeMinutes) {
           errors.push("End time must be after start time");
         }
@@ -200,10 +233,18 @@ export default function EventCreationForm() {
   // Update end date when start date changes
   const handleStartDateChange = (date: Date | undefined) => {
     if (date) {
-      setStartDate(date);
+      const newStartDate = new Date(date);
+      setStartDate(newStartDate);
+      
       // If end date is before start date, update it
-      if (endDate < date) {
-        setEndDate(new Date(date.getTime() + 60 * 60 * 1000)); // 1 hour later
+      if (endDate < newStartDate) {
+        const newEndDate = new Date(newStartDate);
+        newEndDate.setHours(newStartDate.getHours() + 1);
+        setEndDate(newEndDate);
+        
+        // Update end time as well
+        const endHour = newEndDate.getHours();
+        setEndTime(`${endHour.toString().padStart(2, '0')}:00`);
       }
     }
   };
@@ -211,15 +252,37 @@ export default function EventCreationForm() {
   // Update end time when start time changes
   const handleStartTimeChange = (time: string) => {
     setStartTime(time);
+    
     // If same day and end time is before start time, update end time
     if (startDate.toDateString() === endDate.toDateString()) {
-      const startTimeMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
-      const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+      const [startHours, startMinutes] = time.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
+      
+      const startTimeMinutes = startHours * 60 + startMinutes;
+      const endTimeMinutes = endHours * 60 + endMinutes;
+      
       if (endTimeMinutes <= startTimeMinutes) {
         const newEndTimeMinutes = startTimeMinutes + 60; // 1 hour later
-        const hours = Math.floor(newEndTimeMinutes / 60) % 24;
-        const minutes = newEndTimeMinutes % 60;
-        setEndTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+        const newHours = Math.floor(newEndTimeMinutes / 60) % 24;
+        const newMinutes = newEndTimeMinutes % 60;
+        setEndTime(`${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`);
+      }
+    }
+  };
+
+  // Handle end date change
+  const handleEndDateChange = (date: Date | undefined) => {
+    if (date) {
+      const newEndDate = new Date(date);
+      setEndDate(newEndDate);
+      
+      // If end date is before start date, it should not be allowed by calendar
+      // But let's add a safety check
+      if (newEndDate < startDate) {
+        const safeEndDate = new Date(startDate);
+        safeEndDate.setHours(startDate.getHours() + 1);
+        setEndDate(safeEndDate);
+        setEndTime(`${safeEndDate.getHours().toString().padStart(2, '0')}:00`);
       }
     }
   };
@@ -312,12 +375,31 @@ export default function EventCreationForm() {
         });
         
         // Reset form after successful creation
-        setEventName("");
-        setDescription("");
-        setLocation("");
-        setTags([]);
-        setImageUrl("");
-        // Reset other fields as needed...
+        const resetForm = () => {
+          setEventName("");
+          setDescription("");
+          setLocation("");
+          setMapsLink("");
+          setTags([]);
+          setImageUrl("");
+          setVisibility("public");
+          setRequireApproval(false);
+          setTicketType("free");
+          setTicketPrice("");
+          setCapacity("unlimited");
+          setCapacityLimit("");
+          
+          // Reset dates to current time + 1 hour
+          const now = initializeCurrentDate();
+          const end = initializeEndDate(now);
+          setStartDate(now);
+          setEndDate(end);
+          setStartTime(`${now.getHours().toString().padStart(2, '0')}:00`);
+          setEndTime(`${end.getHours().toString().padStart(2, '0')}:00`);
+          setTimezone("GMT+07:00");
+        };
+        
+        resetForm();
         
       } else {
         const errorData = await response.json();
@@ -406,9 +488,7 @@ export default function EventCreationForm() {
                   timezone={timezone}
                   onStartDateChange={handleStartDateChange}
                   onStartTimeChange={handleStartTimeChange}
-                  onEndDateChange={(date) => {
-                    if (date) setEndDate(date);
-                  }}
+                  onEndDateChange={handleEndDateChange}
                   onEndTimeChange={setEndTime}
                   onTimezoneChange={setTimezone}
                 />

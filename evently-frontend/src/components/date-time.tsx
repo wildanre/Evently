@@ -108,6 +108,10 @@ export function EventDateTimePicker({
                 onSelect={onStartDateChange}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
+                defaultMonth={startDate}
+                showOutsideDays={false}
+                captionLayout="dropdown"
+                fixedWeeks={true}
                 className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white"
               />
             </PopoverContent>
@@ -159,6 +163,10 @@ export function EventDateTimePicker({
                 onSelect={onEndDateChange}
                 disabled={(date) => date < startDate}
                 initialFocus
+                defaultMonth={endDate}
+                showOutsideDays={false}
+                captionLayout="dropdown"
+                fixedWeeks={true}
                 className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white"
               />
             </PopoverContent>

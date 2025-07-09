@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "public": false,
+  "github": {
+    "enabled": true,
+    "silent": true
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}

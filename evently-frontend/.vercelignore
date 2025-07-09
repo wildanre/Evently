@@ -1,0 +1,27 @@
+# Testing directories
+__tests__
+test-results
+playwright-report
+coverage
+
+# Git
+.git
+.github
+
+# Development files
+.eslintrc.json
+jest.config.js
+jest.setup.js
+playwright.config.js
+lighthouserc.json
+lighthouse-budget.json
+
+# Build files
+.next
+
+# Markdown files
+*.md
+
+# Cache
+node_modules
+.vercel

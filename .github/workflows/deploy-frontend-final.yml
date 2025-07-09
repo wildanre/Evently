@@ -1,0 +1,74 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'evently-frontend/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'evently-frontend/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./evently-frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: evently-frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Create test environment file
+        run: |
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env.test.local
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env.test.local
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.test.local
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env.test.local
+          echo "NEXT_PUBLIC_API_URL=https://evently-backend-amber.vercel.app" >> .env.test.local
+          echo "NEXT_PUBLIC_API_BASE_URL=https://evently-backend-amber.vercel.app" >> .env.test.local
+          echo "NEXTAUTH_URL=http://localhost:3000" >> .env.test.local
+
+      - name: Run type checking
+        run: pnpm exec tsc --noEmit
+
+      - name: Run unit tests
+        run: pnpm run test:ci
+
+  deploy:
+    name: Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      # Deploy to Vercel
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ./evently-frontend
+          vercel-args: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' && '--prod' || '' }}

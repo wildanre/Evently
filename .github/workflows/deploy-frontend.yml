@@ -92,7 +92,8 @@ jobs:
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           vercel-project-name: evently
           working-directory: ./evently-frontend
           vercel-args: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && '--prod --confirm' || '--confirm' }}
+          scope: team_hsodXjGi5ndO7HPhfmEtYOfF

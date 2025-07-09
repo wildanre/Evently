@@ -1,0 +1,209 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'evently-frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'evently-frontend/**'
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: evently-frontend/pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        working-directory: ./evently-frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Create test environment file
+        working-directory: ./evently-frontend
+        run: |
+          echo "NEXT_PUBLIC_API_URL=https://evently-backend-amber.vercel.app" >> .env.test.local
+          echo "NEXT_PUBLIC_API_BASE_URL=https://evently-backend-amber.vercel.app/api" >> .env.test.local
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env.test.local
+          echo "NEXTAUTH_URL=https://evently-nine-iota.vercel.app" >> .env.test.local
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env.test.local
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.test.local
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env.test.local
+
+      - name: Run linting
+        working-directory: ./evently-frontend
+        run: pnpm run lint
+
+      - name: Run type checking
+        working-directory: ./evently-frontend
+        run: pnpm exec tsc --noEmit
+
+      - name: Run unit tests
+        working-directory: ./evently-frontend
+        run: pnpm run test:ci
+
+      - name: Run build test
+        working-directory: ./evently-frontend
+        run: pnpm run build
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            evently-frontend/coverage/
+            evently-frontend/test-results/
+
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: evently-frontend/pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        working-directory: ./evently-frontend
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        working-directory: ./evently-frontend
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel (Preview)
+        working-directory: ./evently-frontend
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} > deployment-url.txt
+
+      - name: Get Preview URL
+        working-directory: ./evently-frontend
+        run: |
+          echo "PREVIEW_URL=$(cat deployment-url.txt)" >> $GITHUB_ENV
+
+      - name: Comment Preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = process.env.PREVIEW_URL;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview deployment ready!\n\n**Preview URL:** ${url}\n\n*Deployed from commit ${context.sha}*`
+            });
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: evently-frontend/pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        working-directory: ./evently-frontend
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        working-directory: ./evently-frontend
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel (Production)
+        id: deploy
+        working-directory: ./evently-frontend
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Create deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment?.id,
+              state: 'success',
+              environment_url: url,
+              description: 'Frontend deployed successfully to Vercel'
+            });
+
+  lighthouse:
+    name: Lighthouse Performance Check
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ needs.deploy-production.outputs.url }}
+          budgetPath: ./evently-frontend/lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

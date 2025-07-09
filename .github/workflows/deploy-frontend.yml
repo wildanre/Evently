@@ -1,4 +1,4 @@
-name: Deploy Frontend to Vercel
+name: Frontend CI with Vercel Deployment
 
 on:
   push:
@@ -12,12 +12,12 @@ on:
       - 'evently-frontend/**'
 
 env:
+  VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
   VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
-  VERCEL_ORG_ID: team_wildanre
 
 jobs:
   test:
-    name: Run Tests
+    name: Run Tests and Build
     runs-on: ubuntu-latest
     
     steps:
@@ -72,6 +72,25 @@ jobs:
             evently-frontend/coverage/
             evently-frontend/test-results/
 
+  lighthouse:
+    name: Lighthouse Performance Check
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            https://evently-nine-iota.vercel.app
+          budgetPath: ./evently-frontend/lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
   deploy-preview:
     name: Deploy Preview
     runs-on: ubuntu-latest
@@ -100,14 +119,23 @@ jobs:
       - name: Pull Vercel Environment Information
         working-directory: ./evently-frontend
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
+          VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
 
       - name: Build Project Artifacts
         working-directory: ./evently-frontend
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
+          VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
 
       - name: Deploy Project Artifacts to Vercel (Preview)
         working-directory: ./evently-frontend
         run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} > deployment-url.txt
+        env:
+          VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
+          VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
 
       - name: Get Preview URL
         working-directory: ./evently-frontend
@@ -159,10 +187,16 @@ jobs:
       - name: Pull Vercel Environment Information
         working-directory: ./evently-frontend
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
+          VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
 
       - name: Build Project Artifacts
         working-directory: ./evently-frontend
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
+          VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
 
       - name: Deploy Project Artifacts to Vercel (Production)
         id: deploy
@@ -170,6 +204,9 @@ jobs:
         run: |
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: team_hsodXjGi5ndO7HPhfmEtYOfF
+          VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
 
       - name: Create deployment status
         uses: actions/github-script@v7
@@ -184,22 +221,3 @@ jobs:
               environment_url: url,
               description: 'Frontend deployed successfully to Vercel'
             });
-
-  lighthouse:
-    name: Lighthouse Performance Check
-    runs-on: ubuntu-latest
-    needs: deploy-production
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v10
-        with:
-          urls: |
-            ${{ needs.deploy-production.outputs.url }}
-          budgetPath: ./evently-frontend/lighthouse-budget.json
-          uploadArtifacts: true
-          temporaryPublicStorage: true

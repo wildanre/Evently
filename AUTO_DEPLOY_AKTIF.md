@@ -20,6 +20,7 @@
    - Auto deploy pipeline berjalan
 
 3. **Vercel Integration** ✅
+   - Team ID: `team_hsodXjGi5ndO7HPhfmEtYOfF`
    - Project ID: `prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad`
    - Production URL: `https://evently-nine-iota.vercel.app`
 

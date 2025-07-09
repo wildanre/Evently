@@ -33,8 +33,14 @@
       "DATABASE_URL": "@database_url"
     }
   },
-  "installCommand": "pnpm install --frozen-lockfile",
+  "installCommand": "pnpm install",
   "buildCommand": "pnpm run build",
   "devCommand": "pnpm run dev",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "master": true
+    }
+  }
 }

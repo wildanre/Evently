@@ -157,6 +157,32 @@ git status --porcelain
    - GitHub push protection bypassed
    - Clean commit history
 
+## 🛠️ **PENYEDERHANAAN WORKFLOW**
+
+Untuk mempermudah deployment dan menghindari error dengan Vercel OAuth, saya telah melakukan beberapa penyederhanaan workflow:
+
+1. **GitHub Actions & Vercel Integration** - ✅ CI masih berjalan, tetapi deployment dilakukan langsung dari Vercel
+2. **Auto-Deployment Mode** - ✅ Vercel menggunakan fitur Git Integration untuk auto-deploy dari repository
+3. **Preview Deployment** - ✅ Tetap tersedia melalui Vercel Git Integration
+4. **Production Deployment** - ✅ Otomatis dari Vercel ketika push ke main
+
+## 🚀 **Cara Deployment:**
+
+1. **Untuk Preview:**
+   - Push ke branch feature
+   - Buat PR ke main
+   - Vercel otomatis membuat preview
+
+2. **Untuk Production:**
+   - Merge PR ke main
+   - Vercel otomatis deploy ke production
+
+## 📝 **Berikut URLs Penting:**
+
+- **GitHub Repository**: https://github.com/wildanre/Evently
+- **Vercel Dashboard**: https://vercel.com/dashboard
+- **Production URL**: https://evently-nine-iota.vercel.app
+
 ## 🎉 **SUCCESS! Auto Deploy Sudah Aktif!**
 
 Setiap kali Anda push ke main branch, aplikasi akan:

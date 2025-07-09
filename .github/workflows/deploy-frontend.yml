@@ -12,8 +12,8 @@ on:
       - 'evently-frontend/**'
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: prj_pWg5WKt3iEfrwo6M3jCmSq1IZSad
+  VERCEL_ORG_ID: team_wildanre
 
 jobs:
   test:

@@ -10,10 +10,12 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  Menu,
   Search,
   Settings,
   Ticket,
   User,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -41,6 +43,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
 export default function Navbar() {
   const [isLogin, setIsLogin] = React.useState(true);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [loginForm, setLoginForm] = React.useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = React.useState({
     name: "",
@@ -113,6 +116,7 @@ export default function Navbar() {
     <nav className="shadow-sm w-full flex top-0 bg-foreground/10 z-50 bg-gradient-to-t from-transparent to-background backdrop-blur-sm dark:border-foreground/20 dark:bg-foreground/10 dark:bg-gradient-to-b dark:from-transparent dark:to-neutral-900">
       <div className="w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and Desktop Navigation */}
           <div className="flex items-center gap-5">
             <Link href={"/events"} className="flex-shrink-0">
               <Image
@@ -123,7 +127,9 @@ export default function Navbar() {
                 className="h-6 w-6 rounded-full"
               />
             </Link>
-            <div className="flex items-center gap-1">
+            
+            {/* Desktop Navigation - Hidden on mobile */}
+            <div className="hidden md:flex items-center gap-1">
               <Link href={"/events"} className="text-sm text-foreground">
                 <Button
                   variant="ghost"
@@ -186,7 +192,9 @@ export default function Navbar() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* Desktop Right Side */}
+          <div className="hidden md:flex items-center gap-4">
             <Link href={"/create"}>
               <Button variant="ghost" className="font-bold px-0 text-gray-300">
                 Create Event
@@ -230,6 +238,7 @@ export default function Navbar() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
+                  {/* ...existing dialog content... */}
                   {isLogin ? (
                     <React.Fragment>
                       <DialogHeader>
@@ -402,7 +411,343 @@ export default function Navbar() {
               </Dialog>
             )}
           </div>
+
+          {/* Mobile Right Side */}
+          <div className="flex md:hidden items-center gap-2">
+            {isAuthenticated ? (
+              <>
+                <NotificationMenu>
+                  <div className="relative">
+                    <Bell className="size-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                  </div>
+                </NotificationMenu>
+                <UserMenu>
+                  <Avatar className="cursor-pointer h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      <Image
+                        src={user?.profileImageUrl || "/images/avatar1.jpg"}
+                        alt={user?.name || "User Avatar"}
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    </AvatarFallback>
+                    {user?.profileImageUrl && (
+                      <AvatarImage src={user.profileImageUrl} alt={user.name} />
+                    )}
+                  </Avatar>
+                </UserMenu>
+              </>
+            ) : (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="font-bold px-2 text-gray-300"
+                  >
+                    <LogIn className="size-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  {/* Same dialog content as desktop */}
+                  {isLogin ? (
+                    <React.Fragment>
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">
+                          Login to Your Account
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                          Please enter your email and password to login.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <GoogleOAuthButton />
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+                        <form
+                          onSubmit={handleLogin}
+                          className="flex flex-col gap-4"
+                        >
+                          <Input
+                            type="email"
+                            placeholder="Email"
+                            value={loginForm.email}
+                            onChange={(e) =>
+                              setLoginForm({
+                                ...loginForm,
+                                email: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <Input
+                            type="password"
+                            placeholder="Password"
+                            value={loginForm.password}
+                            onChange={(e) =>
+                              setLoginForm({
+                                ...loginForm,
+                                password: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Signing in...
+                              </>
+                            ) : (
+                              "Login"
+                            )}
+                          </Button>
+                          <span className="text-sm text-center text-gray-300">
+                            Don't have an account?{" "}
+                            <button
+                              type="button"
+                              onClick={() => setIsLogin(false)}
+                              className="text-white cursor-pointer hover:underline"
+                            >
+                              Register
+                            </button>
+                          </span>
+                        </form>
+                      </div>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">
+                          Create Account
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                          Please fill in the details below to create a new
+                          account.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <GoogleOAuthButton />
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+                        <form
+                          onSubmit={handleRegister}
+                          className="flex flex-col gap-4"
+                        >
+                          <Input
+                            type="text"
+                            placeholder="Full Name"
+                            value={registerForm.name}
+                            onChange={(e) =>
+                              setRegisterForm({
+                                ...registerForm,
+                                name: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <Input
+                            type="email"
+                            placeholder="Email"
+                            value={registerForm.email}
+                            onChange={(e) =>
+                              setRegisterForm({
+                                ...registerForm,
+                                email: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <Input
+                            type="password"
+                            placeholder="Password"
+                            value={registerForm.password}
+                            onChange={(e) =>
+                              setRegisterForm({
+                                ...registerForm,
+                                password: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating account...
+                              </>
+                            ) : (
+                              "Register"
+                            )}
+                          </Button>
+                          <span className="text-sm text-center text-gray-300">
+                            Already have an account?{" "}
+                            <button
+                              type="button"
+                              onClick={() => setIsLogin(true)}
+                              className="text-white cursor-pointer hover:underline"
+                            >
+                              Login
+                            </button>
+                          </span>
+                        </form>
+                      </div>
+                    </React.Fragment>
+                  )}
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            {/* Mobile Menu Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5 text-gray-300" />
+              ) : (
+                <Menu className="h-5 w-5 text-gray-300" />
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Menu - Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200/20 py-4">
+            <div className="flex flex-col space-y-2">
+              <Link 
+                href={"/events"} 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm text-foreground"
+              >
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start rounded-2xl text-sm px-4 h-10 text-gray-300",
+                    pathname === "/events"
+                      ? "text-white font-bold bg-foreground/10"
+                      : "font-regular"
+                  )}
+                >
+                  <Ticket className="mr-2" />
+                  <span>Events</span>
+                </Button>
+              </Link>
+              
+              <Link 
+                href={"/discover"} 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm text-foreground"
+              >
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start rounded-2xl text-sm px-4 h-10 text-gray-300",
+                    pathname === "/discover"
+                      ? "text-white font-bold bg-foreground/10"
+                      : "font-regular"
+                  )}
+                >
+                  <Compass className="mr-2" />
+                  <span>Discover</span>
+                </Button>
+              </Link>
+
+              <Link 
+                href={"/create"} 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm text-foreground"
+              >
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start rounded-2xl text-sm px-4 h-10 text-gray-300 font-bold"
+                >
+                  <span>Create Event</span>
+                </Button>
+              </Link>
+
+              {isAuthenticated && (
+                <>
+                  <Link 
+                    href={"/my-events"} 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-sm text-foreground"
+                  >
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start rounded-2xl text-sm px-4 h-10 text-gray-300",
+                        pathname === "/my-events"
+                          ? "text-white font-bold bg-foreground/10"
+                          : "font-regular"
+                      )}
+                    >
+                      <User className="mr-2" />
+                      <span>My Events</span>
+                    </Button>
+                  </Link>
+                  
+                  <Link 
+                    href={"/created-events"} 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-sm text-foreground"
+                  >
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start rounded-2xl text-sm px-4 h-10 text-gray-300",
+                        pathname === "/created-events"
+                          ? "text-white font-bold bg-foreground/10"
+                          : "font-regular"
+                      )}
+                    >
+                      <Settings className="mr-2" />
+                      <span>Created Events</span>
+                    </Button>
+                  </Link>
+                </>
+              )}
+
+              <div className="pt-2 border-t border-gray-200/20">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start rounded-2xl text-sm px-4 h-10 text-gray-300"
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  <span>Search</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

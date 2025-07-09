@@ -202,9 +202,9 @@ export default function EventDetailsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="container mx-auto p-4 sm:p-6">
+        <div className="flex items-center justify-center h-32 sm:h-64">
+          <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
         </div>
       </div>
     );
@@ -212,14 +212,14 @@ export default function EventDetailsPage() {
 
   if (!event) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Event Not Found</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+      <div className="container mx-auto p-4 sm:p-6">
+        <div className="text-center py-8 sm:py-16">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4">Event Not Found</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm sm:text-base px-4">
             The event you're looking for doesn't exist or has been removed.
           </p>
           <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
             onClick={() => router.push('/discover')}
           >
             Back to Discover
@@ -230,23 +230,23 @@ export default function EventDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
       {/* Back Button */}
       <Button
         variant="ghost"
-        className="mb-6 text-gray-600 hover:text-gray-900"
+        className="mb-4 sm:mb-6 text-gray-600 hover:text-gray-900"
         onClick={() => router.back()}
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </Button>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-6 lg:gap-8 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 order-2 lg:order-1">
           <Card className="overflow-hidden">
             {/* Event Image */}
-            <div className="h-64 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 relative">
+            <div className="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 relative">
               {event.imageUrl ? (
                 <img 
                   src={event.imageUrl} 
@@ -255,24 +255,24 @@ export default function EventDetailsPage() {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <Calendar className="h-16 w-16 text-blue-400" />
+                  <Calendar className="h-12 w-12 sm:h-16 sm:w-16 text-blue-400" />
                 </div>
               )}
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-2 sm:top-4 right-2 sm:right-4">
                 <Badge className={getStatusColor(event.status)}>
                   {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
                 </Badge>
               </div>
             </div>
 
-            <CardContent className="p-8">
-              <div className="flex justify-between items-start mb-4">
-                <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white">
+            <CardContent className="p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-4">
+                <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                   {event.name}
                 </CardTitle>
                 
                 {/* Action Buttons */}
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
@@ -280,7 +280,7 @@ export default function EventDetailsPage() {
                     className="flex items-center gap-2"
                   >
                     <Share2 className="h-4 w-4" />
-                    Share
+                    <span className="hidden sm:inline">Share</span>
                   </Button>
                   
                   {!isEventOnline(event.location) && (
@@ -291,24 +291,24 @@ export default function EventDetailsPage() {
                       className="flex items-center gap-2"
                     >
                       <Map className="h-4 w-4" />
-                      Maps
+                      <span className="hidden sm:inline">Maps</span>
                     </Button>
                   )}
                 </div>
               </div>
               
-              <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base lg:text-lg leading-relaxed mb-4 sm:mb-6">
                 {event.description}
               </p>
 
               {/* Tags */}
               {event.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
                   {event.tags.map((tag, index) => (
                     <Badge 
                       key={index} 
                       variant="secondary" 
-                      className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                      className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 text-xs sm:text-sm"
                     >
                       {tag}
                     </Badge>
@@ -317,28 +317,28 @@ export default function EventDetailsPage() {
               )}
 
               {/* Event Details */}
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium">{formatDate(event.startDate)}</span>
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                  <span className="font-medium text-sm sm:text-base">{formatDate(event.startDate)}</span>
                 </div>
                 
                 <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                    <MapPin className="h-5 w-5 text-blue-600" />
-                    <span>{event.location}</span>
+                  <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400 min-w-0 flex-1">
+                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm sm:text-base truncate">{event.location}</span>
                   </div>
                   {!isEventOnline(event.location) && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handleOpenMaps}
-                      className="text-blue-600 hover:text-blue-700 p-1"
+                      className="text-blue-600 hover:text-blue-700 p-1 ml-2 flex-shrink-0"
                       title="Open in Google Maps"
                     >
                       <Map className="h-4 w-4" />
@@ -347,8 +347,8 @@ export default function EventDetailsPage() {
                 </div>
                 
                 <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <span>
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">
                     {event.attendeeCount} attendees
                     {event.capacity && ` / ${event.capacity} capacity`}
                   </span>
@@ -356,11 +356,11 @@ export default function EventDetailsPage() {
               </div>
 
               {/* Organizer Info */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-white">
                   Organized by
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
                   {event.organizerName}
                 </p>
               </div>
@@ -369,17 +369,17 @@ export default function EventDetailsPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
           {/* Join/Leave Event */}
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               {isUserOrganizer ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
                     You are the organizer of this event
                   </p>
                   <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
                     onClick={() => router.push(`/events/${event.id}/edit`)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
@@ -388,7 +388,7 @@ export default function EventDetailsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
                     {isUserJoined ? "You have joined this event" : "Join this event"}
                   </p>
                   <JoinEventButton
@@ -397,7 +397,7 @@ export default function EventDetailsPage() {
                     eventName={event.name}
                     requireApproval={event.requireApproval}
                     onJoinStatusChange={handleJoinStatusChange}
-                    className="w-full"
+                    className="w-full text-sm sm:text-base"
                   />
                 </div>
               )}
@@ -406,30 +406,30 @@ export default function EventDetailsPage() {
 
           {/* Event Stats */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Event Stats</CardTitle>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg">Event Stats</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Attendees</span>
-                <span className="font-medium">{event.attendeeCount}</span>
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Attendees</span>
+                <span className="font-medium text-sm sm:text-base">{event.attendeeCount}</span>
               </div>
               {event.capacity && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Capacity</span>
-                  <span className="font-medium">{event.capacity}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Capacity</span>
+                  <span className="font-medium text-sm sm:text-base">{event.capacity}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Status</span>
-                <Badge className={getStatusColor(event.status)}>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Status</span>
+                <Badge className={`${getStatusColor(event.status)} text-xs sm:text-sm`}>
                   {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
                 </Badge>
               </div>
               {event.requireApproval && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Approval</span>
-                  <span className="text-sm text-amber-600">Required</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Approval</span>
+                  <span className="text-xs sm:text-sm text-amber-600">Required</span>
                 </div>
               )}
             </CardContent>

@@ -233,22 +233,22 @@ export default function UpcomingEventCard() {
 
   return (
     <div className="min-h-screen text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold">Upcoming Events</h1>
-            <p className="text-neutral-400">Discover and join amazing events</p>
+          <div className="text-center space-y-2 sm:space-y-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Upcoming Events</h1>
+            <p className="text-neutral-400 text-sm sm:text-base">Discover and join amazing events</p>
           </div>
 
           {/* Filter Form */}
-          <div className="flex flex-wrap gap-4 items-center justify-center">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center justify-center">
             <Input
               type="text"
               placeholder="Search events..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64 bg-neutral-900 border-neutral-700 text-white"
+              className="w-full sm:w-64 bg-neutral-900 border-neutral-700 text-white text-sm sm:text-base"
               onKeyPress={(e) => e.key === "Enter" && handleSearch()}
             />
             <Input
@@ -256,10 +256,10 @@ export default function UpcomingEventCard() {
               placeholder="Tags (comma separated)"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="w-64 bg-neutral-900 border-neutral-700 text-white"
+              className="w-full sm:w-64 bg-neutral-900 border-neutral-700 text-white text-sm sm:text-base"
               onKeyPress={(e) => e.key === "Enter" && handleSearch()}
             />
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
               Search
             </Button>
           </div>
@@ -267,59 +267,81 @@ export default function UpcomingEventCard() {
           {/* Event List */}
           <div className="max-w-4xl mx-auto">
             {events.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-8 sm:py-12">
                 <p className="text-neutral-400">No events found</p>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-4 sm:space-y-8">
                 {events.map((event) => (
                   <div key={event.id} className="flex">
-                    <div className="w-24 flex flex-col items-start">
-                      <div className="font-medium text-white">{event.date}</div>
-                      <div className="text-neutral-400 text-sm">{event.day}</div>
+                    {/* Date Column - Hidden on very small screens */}
+                    <div className="hidden sm:flex w-16 sm:w-24 flex-col items-start">
+                      <div className="font-medium text-white text-xs sm:text-sm lg:text-base">{event.date}</div>
+                      <div className="text-neutral-400 text-xs sm:text-sm">{event.day}</div>
                     </div>
+                    
                     <div className="relative flex-grow">
-                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-neutral-600 flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                      {/* Timeline line - Hidden on mobile */}
+                      <div className="hidden sm:block absolute left-0 top-0 bottom-0 w-0.5 bg-neutral-600">
+                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full bg-neutral-400"></div>
                       </div>
+                      
                       <Card
-                        className="ml-8 bg-neutral-900 border-neutral-700 overflow-hidden cursor-pointer hover:bg-neutral-800 transition-colors"
+                        className="sm:ml-6 lg:ml-8 bg-neutral-900 border-neutral-700 overflow-hidden cursor-pointer hover:bg-neutral-800 transition-colors"
                         onClick={() => handleEventClick(event)}
                       >
                         <CardContent className="p-0">
-                          <div className="flex p-6 gap-4">
-                            <div className="flex-grow">
-                              <div className="text-neutral-400 mb-1 text-sm">{event.time}</div>
-                              <h3 className="text-xl font-semibold mb-2 text-white">{event.title}</h3>
-                              <div className="flex items-center gap-1 text-sm text-neutral-400 mb-2">
-                                <Users className="h-4 w-4" />
-                                <span>{event.organizers}</span>
+                          <div className="flex flex-col sm:flex-row p-3 sm:p-6 gap-3 sm:gap-4">
+                            <div className="flex-grow order-2 sm:order-1">
+                              {/* Date info for mobile (shown when date column is hidden) */}
+                              <div className="sm:hidden flex items-center gap-2 text-xs text-neutral-400 mb-2">
+                                <span className="font-medium text-white">{event.date}</span>
+                                <span>•</span>
+                                <span>{event.day}</span>
+                                <span>•</span>
+                                <span>{event.time}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-sm text-neutral-400 mb-4">
-                                <MapPin className="h-4 w-4" />
-                                <span>{event.location}</span>
+                              
+                              {/* Time for larger screens */}
+                              <div className="hidden sm:block text-neutral-400 mb-1 text-xs sm:text-sm">{event.time}</div>
+                              
+                              <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white line-clamp-2">{event.title}</h3>
+                              
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-neutral-400 mb-2">
+                                <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="truncate">{event.organizers}</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="rounded-sm bg-green-600 text-white border-0 px-3">
+                              
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-neutral-400 mb-3 sm:mb-4">
+                                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="truncate">{event.location}</span>
+                              </div>
+                              
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                <Badge variant="outline" className="rounded-sm bg-green-600 text-white border-0 px-2 sm:px-3 text-xs">
                                   Going
                                 </Badge>
-                                <div className="flex -space-x-2">
-                                  {[...Array(4)].map((_, i) => (
-                                    <Avatar key={i} className="w-6 h-6 border border-neutral-800">
-                                      <AvatarImage
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${event.id}-${i}`}
-                                      />
-                                      <AvatarFallback className="bg-neutral-600 text-[10px]">
-                                        {String.fromCharCode(65 + i)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                  ))}
+                                <div className="flex items-center gap-2">
+                                  <div className="flex -space-x-1 sm:-space-x-2">
+                                    {[...Array(Math.min(3, 4))].map((_, i) => (
+                                      <Avatar key={i} className="w-5 h-5 sm:w-6 sm:h-6 border border-neutral-800">
+                                        <AvatarImage
+                                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${event.id}-${i}`}
+                                        />
+                                        <AvatarFallback className="bg-neutral-600 text-[8px] sm:text-[10px]">
+                                          {String.fromCharCode(65 + i)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    ))}
+                                  </div>
+                                  <span className="text-xs sm:text-sm text-neutral-400">{event.attendees} attending</span>
                                 </div>
-                                <span className="text-sm text-neutral-400">{event.attendees} attending</span>
                               </div>
                             </div>
-                            <div className="flex-shrink-0">
-                              <div className="w-32 h-32 overflow-hidden rounded-lg">
+                            
+                            {/* Event Image */}
+                            <div className="flex-shrink-0 order-1 sm:order-2">
+                              <div className="w-full h-32 sm:w-24 sm:h-24 lg:w-32 lg:h-32 overflow-hidden rounded-lg">
                                 <img
                                   src={event.imageUrl || "/placeholder.svg"}
                                   alt={event.title}
@@ -339,36 +361,39 @@ export default function UpcomingEventCard() {
 
           {/* Pagination Controls */}
           {events.length > 0 && (
-            <div className="flex flex-col items-center space-y-4">
+            <div className="flex flex-col items-center space-y-3 sm:space-y-4">
               {/* Pagination Info */}
-              <div className="text-sm text-neutral-400">
+              <div className="text-xs sm:text-sm text-neutral-400 text-center">
                 Showing page {page} of {totalPages} ({totalEvents} total events)
               </div>
 
               {/* Pagination Buttons */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
                 {/* Previous Button */}
                 <Button
                   onClick={handlePrevPage}
                   disabled={!hasPrevPage || loading}
                   variant="outline"
-                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
+                  size="sm"
+                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
+                  <span className="sm:hidden">Prev</span>
                 </Button>
 
                 {/* Page Numbers */}
                 <div className="flex space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                    const maxButtons = 3; // Always show 3 buttons on mobile
                     let pageNum
-                    if (totalPages <= 5) {
+                    if (totalPages <= maxButtons) {
                       pageNum = i + 1
-                    } else if (page <= 3) {
+                    } else if (page <= Math.floor(maxButtons/2) + 1) {
                       pageNum = i + 1
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
+                    } else if (page >= totalPages - Math.floor(maxButtons/2)) {
+                      pageNum = totalPages - maxButtons + 1 + i
                     } else {
-                      pageNum = page - 2 + i
+                      pageNum = page - Math.floor(maxButtons/2) + i
                     }
 
                     return (
@@ -388,6 +413,43 @@ export default function UpcomingEventCard() {
                       </Button>
                     )
                   })}
+                  
+                  {/* Desktop: Show more page numbers */}
+                  <div className="hidden sm:flex space-x-1">
+                    {totalPages > 3 && Array.from({ length: Math.min(2, totalPages - 3) }, (_, i) => {
+                      const maxButtons = 5;
+                      let pageNum
+                      if (totalPages <= maxButtons) {
+                        pageNum = i + 4 // Start from 4th page
+                      } else if (page <= 3) {
+                        pageNum = i + 4
+                      } else if (page >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i + 3
+                      } else {
+                        pageNum = page - 2 + i + 3
+                      }
+
+                      if (pageNum <= totalPages) {
+                        return (
+                          <Button
+                            key={pageNum}
+                            onClick={() => handlePageClick(pageNum)}
+                            disabled={loading}
+                            variant={page === pageNum ? "default" : "outline"}
+                            className={
+                              page === pageNum
+                                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                : "border-neutral-600 text-neutral-300 hover:bg-neutral-800"
+                            }
+                            size="sm"
+                          >
+                            {pageNum}
+                          </Button>
+                        )
+                      }
+                      return null
+                    })}
+                  </div>
                 </div>
 
                 {/* Next Button */}
@@ -395,14 +457,16 @@ export default function UpcomingEventCard() {
                   onClick={handleNextPage}
                   disabled={!hasNextPage || loading}
                   variant="outline"
-                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
+                  size="sm"
+                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="sm:hidden">Next</span>
                 </Button>
               </div>
 
               {/* Items per page selector */}
-              <div className="flex items-center space-x-2 text-sm">
+              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 text-xs sm:text-sm">
                 <span className="text-neutral-400">Items per page:</span>
                 <select
                   value={limit}
@@ -410,7 +474,7 @@ export default function UpcomingEventCard() {
                     setLimit(Number(e.target.value))
                     setPage(1) // Reset to first page when changing limit
                   }}
-                  className=" border border-neutral-600 text-white rounded px-2 py-1"
+                  className="bg-neutral-900 border border-neutral-600 text-white rounded px-2 py-1 text-xs sm:text-sm"
                 >
                   <option value={3}>3</option>
                   <option value={5}>5</option>

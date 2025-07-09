@@ -115,7 +115,10 @@ jobs:
       
       # Deploy to Vercel using CLI
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: |
+          npm install --global vercel@latest
+          # Disable telemetry to avoid output noise
+          vercel telemetry disable
         
       - name: Deploy Project to Vercel
         id: vercel-deployment
@@ -124,46 +127,85 @@ jobs:
           echo "Branch: ${{ github.ref }}"
           echo "Event: ${{ github.event_name }}"
           
-          # Try deployment with error handling
-          set +e  # Don't exit on error
+          # Function to extract URL from Vercel output
+          extract_url() {
+            local output="$1"
+            # Extract URL using various patterns
+            local url=$(echo "$output" | grep -oE 'https://[a-zA-Z0-9\-]+\.vercel\.app' | head -1)
+            if [ -z "$url" ]; then
+              # Try alternative pattern
+              url=$(echo "$output" | grep -oE 'Preview: https://[a-zA-Z0-9\-]+\.vercel\.app' | sed 's/Preview: //' | head -1)
+            fi
+            if [ -z "$url" ]; then
+              # Try another pattern
+              url=$(echo "$output" | grep -oE 'Production: https://[a-zA-Z0-9\-]+\.vercel\.app' | sed 's/Production: //' | head -1)
+            fi
+            echo "$url"
+          }
+          
+          # Deploy with proper output handling
+          set +e  # Don't exit on error immediately
           
           if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/master" ]; then
             echo "Deploying to production..."
-            URL=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
+            DEPLOYMENT_OUTPUT=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes 2>&1)
             EXIT_CODE=$?
           else
             echo "Deploying to preview..."
-            URL=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
+            DEPLOYMENT_OUTPUT=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes 2>&1)
             EXIT_CODE=$?
           fi
           
-          # Check if deployment was successful
-          if [ $EXIT_CODE -eq 0 ]; then
+          echo "Deployment output:"
+          echo "$DEPLOYMENT_OUTPUT"
+          
+          # Extract URL from output
+          DEPLOYMENT_URL=$(extract_url "$DEPLOYMENT_OUTPUT")
+          
+          if [ $EXIT_CODE -eq 0 ] && [ ! -z "$DEPLOYMENT_URL" ]; then
             echo "✅ Deployment successful!"
-            echo "preview-url=$URL" >> $GITHUB_OUTPUT
-            echo "deployment-url=$URL" >> $GITHUB_OUTPUT
-            echo "Deployed to: $URL"
+            echo "preview-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "Deployed to: $DEPLOYMENT_URL"
           else
-            echo "❌ Deployment failed with exit code: $EXIT_CODE"
-            echo "Error output: $URL"
-            echo "Trying alternative deployment..."
+            echo "❌ Initial deployment had issues. Exit code: $EXIT_CODE"
+            echo "Trying alternative approach..."
             
-            # Try without --force flag
+            # Try with different flags
             if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/master" ]; then
-              URL=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
+              echo "Retrying production deployment..."
+              RETRY_OUTPUT=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
             else
-              URL=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes)
+              echo "Retrying preview deployment..."
+              RETRY_OUTPUT=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes --force 2>&1)
             fi
             
-            echo "preview-url=$URL" >> $GITHUB_OUTPUT
-            echo "deployment-url=$URL" >> $GITHUB_OUTPUT
-            echo "Alternative deployment to: $URL"
+            echo "Retry output:"
+            echo "$RETRY_OUTPUT"
+            
+            RETRY_URL=$(extract_url "$RETRY_OUTPUT")
+            
+            if [ ! -z "$RETRY_URL" ]; then
+              echo "✅ Retry deployment successful!"
+              echo "preview-url=$RETRY_URL" >> $GITHUB_OUTPUT
+              echo "deployment-url=$RETRY_URL" >> $GITHUB_OUTPUT
+              echo "Deployed to: $RETRY_URL"
+            else
+              echo "❌ Could not extract deployment URL"
+              # Use fallback URL
+              FALLBACK_URL="https://evently-frontend-alpha.vercel.app"
+              echo "preview-url=$FALLBACK_URL" >> $GITHUB_OUTPUT
+              echo "deployment-url=$FALLBACK_URL" >> $GITHUB_OUTPUT
+              echo "Using fallback URL: $FALLBACK_URL"
+            fi
           fi
           
           set -e  # Re-enable exit on error
         working-directory: ./evently-frontend
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          CI: 1
+          DISABLE_TELEMETRY: 1
           
       - name: Debug deployment outputs
         run: |

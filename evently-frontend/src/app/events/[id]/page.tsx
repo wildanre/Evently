@@ -234,7 +234,7 @@ export default function EventDetailsPage() {
       {/* Back Button */}
       <Button
         variant="ghost"
-        className="mb-4 sm:mb-6 text-gray-600 hover:text-gray-900"
+        className="mb-4 sm:mb-6 text-gray-600 hover:text-gray-950"
         onClick={() => router.back()}
       >
         <ArrowLeft className="h-4 w-4 mr-2" />

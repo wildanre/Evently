@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Clock, Users, ArrowLeft, Edit, Share2, Map } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, ArrowLeft, Edit, Share2, Map, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
 import { JoinEventButton } from "@/components/join-event-button";
+import { PaymentForm } from "@/components/payment/payment-form";
 import { useParams, useRouter } from "next/navigation";
 
 interface EventDetails {
@@ -28,12 +29,14 @@ interface EventDetails {
   requireApproval: boolean;
   status: 'upcoming' | 'ongoing' | 'past';
   participants?: any[];
+  ticketPrice?: number;
 }
 
 export default function EventDetailsPage() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
@@ -78,7 +81,8 @@ export default function EventDetailsPage() {
           organizerEmail: eventData.organizer ? eventData.organizer.email : '',
           requireApproval: eventData.requireApproval || false,
           status: getEventStatus(eventData.startDate, eventData.endDate),
-          participants: eventData.participants || []
+          participants: eventData.participants || [],
+          ticketPrice: eventData.ticketPrice || 0
         };
 
         setEvent(transformedEvent);
@@ -195,10 +199,30 @@ export default function EventDetailsPage() {
     participant.user && participant.user.email === user?.email && participant.status === 'confirmed'
   ) || false;
 
+  // Handle join status change
   const handleJoinStatusChange = () => {
     // Refresh event details when join status changes
     fetchEventDetails();
   };
+
+  // Handle payment success
+  const handlePaymentSuccess = (paymentData: any) => {
+    toast.success('Payment initiated successfully!');
+    setShowPaymentForm(false);
+    // Refresh event details to update attendee count
+    fetchEventDetails();
+  };
+
+  // Check if event is free or paid
+  const isFreeEvent = !event?.ticketPrice || event.ticketPrice === 0;
+  
+  // Debug logging
+  console.log('Event details:', {
+    eventId: event?.id,
+    ticketPrice: event?.ticketPrice,
+    isFreeEvent,
+    paymentEnabled: process.env.NEXT_PUBLIC_PAYMENT_ENABLED
+  });
 
   if (loading) {
     return (
@@ -370,10 +394,54 @@ export default function EventDetailsPage() {
 
         {/* Sidebar */}
         <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
-          {/* Join/Leave Event */}
+          {/* Ticket Price */}
+          {!isFreeEvent && (
+            <Card>
+              <CardContent className="p-4 sm:p-6">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CreditCard className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Ticket Price</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Rp {event?.ticketPrice?.toLocaleString('id-ID')}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Join/Leave Event or Payment */}
           <Card>
             <CardContent className="p-4 sm:p-6">
-              {isUserOrganizer ? (
+              {showPaymentForm && event && !isFreeEvent ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Purchase Tickets</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowPaymentForm(false)}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  <PaymentForm
+                    event={{
+                      id: event.id,
+                      name: event.name,
+                      startDate: event.startDate,
+                      location: event.location,
+                      ticketPrice: event.ticketPrice || 0,
+                      capacity: event.capacity,
+                      attendeeCount: event.attendeeCount,
+                      imageUrl: event.imageUrl
+                    }}
+                    onPaymentSuccess={handlePaymentSuccess}
+                    onCancel={() => setShowPaymentForm(false)}
+                  />
+                </div>
+              ) : isUserOrganizer ? (
                 <div className="space-y-4">
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
                     You are the organizer of this event
@@ -389,14 +457,20 @@ export default function EventDetailsPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    {isUserJoined ? "You have joined this event" : "Join this event"}
+                    {isFreeEvent 
+                      ? (isUserJoined ? "You have joined this event" : "Join this event")
+                      : "Purchase tickets to join this event"
+                    }
                   </p>
+                  
                   <JoinEventButton
                     eventId={event.id}
                     isJoined={isUserJoined}
                     eventName={event.name}
                     requireApproval={event.requireApproval}
+                    ticketPrice={event.ticketPrice}
                     onJoinStatusChange={handleJoinStatusChange}
+                    onPaymentRequired={() => setShowPaymentForm(true)}
                     className="w-full text-sm sm:text-base"
                   />
                 </div>
@@ -410,6 +484,12 @@ export default function EventDetailsPage() {
               <CardTitle className="text-base sm:text-lg">Event Stats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Price</span>
+                <span className="font-medium text-sm sm:text-base">
+                  {isFreeEvent ? 'Free' : `Rp ${event.ticketPrice?.toLocaleString('id-ID')}`}
+                </span>
+              </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Attendees</span>
                 <span className="font-medium text-sm sm:text-base">{event.attendeeCount}</span>

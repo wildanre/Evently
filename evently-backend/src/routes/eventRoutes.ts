@@ -192,6 +192,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
       imageUrl: participant.events_event_participants_eventIdToevents.imageUrl,
       tags: participant.events_event_participants_eventIdToevents.tags,
       capacity: participant.events_event_participants_eventIdToevents.capacity,
+      ticketPrice: (participant.events_event_participants_eventIdToevents as any).ticketPrice || 0, // Add ticket price with type assertion
       attendeeCount: participant.events_event_participants_eventIdToevents._count.event_participants_event_participants_eventIdToevents,
       organizerName: participant.events_event_participants_eventIdToevents.users.name,
       joinedAt: participant.registeredAt,
@@ -536,7 +537,8 @@ router.post('/', [
   body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be positive'),
   body('tags').optional().isArray().withMessage('Tags must be an array'),
   body('visibility').optional().isBoolean(),
-  body('requireApproval').optional().isBoolean()
+  body('requireApproval').optional().isBoolean(),
+  body('ticketPrice').optional().isNumeric().withMessage('Ticket price must be a number')
 ], authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
@@ -555,7 +557,8 @@ router.post('/', [
       tags,
       visibility = true,
       requireApproval = false,
-      imageUrl
+      imageUrl,
+      ticketPrice
     } = req.body;
 
     // Validate dates
@@ -563,20 +566,28 @@ router.post('/', [
       return res.status(400).json({ error: 'Start date must be before end date' });
     }
 
+    const eventData: any = {
+      name,
+      description,
+      location,
+      mapsLink,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      capacity,
+      tags: tags || [],
+      visibility,
+      requireApproval,
+      imageUrl,
+      organizerId: req.user!.id
+    };
+
+    // Add ticketPrice if provided
+    if (ticketPrice !== undefined) {
+      eventData.ticketPrice = parseFloat(ticketPrice) || 0;
+    }
+
     const event = await prisma.events.create({
-      data: {
-        name,
-        description,
-        location,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        capacity,
-        tags: tags || [],
-        visibility,
-        requireApproval,
-        imageUrl,
-        organizerId: req.user!.id
-      },
+      data: eventData,
       include: {
         users: {
           select: { id: true, name: true, email: true }

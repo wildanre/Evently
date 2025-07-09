@@ -49,8 +49,8 @@ export default function UpcomingEventCard() {
   const handleJoinStatusChange = () => {
     // Refresh the events list when join status changes
     fetchEvents();
-    // Close the slider to show updated event list
-    setIsSheetOpen(false);
+    // Keep the slider open so users can see the updated button state
+    // The slider will show the new status (Join -> Leave or vice versa)
   };
 
   const fetchEvents = async () => {

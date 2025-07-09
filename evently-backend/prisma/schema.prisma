@@ -75,6 +75,7 @@ model events {
   requireApproval                                              Boolean              @default(false)
   capacity                                                     Int?
   attendeeCount                                                Int                  @default(0)
+  ticketPrice                                                  Float?               @default(0)
   startDate                                                    DateTime
   endDate                                                      DateTime
   registrationStartDate                                        DateTime             @default(now())
@@ -91,6 +92,7 @@ model events {
   users                                                        users                @relation(fields: [organizerId], references: [id])
   notifications                                                notifications[]
   myEvents                                                     myEvents[]
+  payments                                                     payments[]
 }
 
 model notifications {
@@ -123,7 +125,36 @@ model users {
   event_participants event_participants[]
   events             events[]
   notifications      notifications[]
-  myEvents           myEvents[]
+  myEvents                                                     myEvents[]
+  payments                                                     payments[]
+}
+
+model payments {
+  id                    String    @id @default(cuid())
+  eventId               String
+  userId                String
+  quantity              Int       @default(1)
+  amount                Float
+  paymentMethod         String    // va, cc, qris, convenience_store
+  status                String    @default("pending") // pending, completed, failed, expired
+  ipaymuReferenceId     String?   @unique
+  ipaymuSessionId       String?
+  ipaymuTransactionId   String?
+  paymentUrl            String?
+  expiryTime            DateTime?
+  buyerName             String?
+  buyerEmail            String?
+  buyerPhone            String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Relations
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event                 events    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
 }
 
 enum EventRole {

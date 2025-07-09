@@ -6,10 +6,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
     : 'http://localhost:8000');
 
 export const API_ENDPOINTS = {
+  BASE: API_BASE_URL,
   EVENTS: `${API_BASE_URL}/api/events`,
   AUTH: `${API_BASE_URL}/api/auth`,
   USERS: `${API_BASE_URL}/api/users`,
   NOTIFICATIONS: `${API_BASE_URL}/api/notifications`,
+  PAYMENTS: `${API_BASE_URL}/api/payments`,
 };
 
 // Debug log to check which URL is being used

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Clock, Users, ExternalLink, AlertTriangle, Share2, Map } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, ExternalLink, AlertTriangle, Share2, Map, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ interface Event {
   participantStatus?: 'confirmed' | 'pending' | 'rejected'; // Add rejected status
   status: 'upcoming' | 'ongoing' | 'past';
   isOnline?: boolean; // Add online/offline flag
+  ticketPrice?: number; // Add ticket price
 }
 
 export default function MyEventsPage() {
@@ -87,6 +88,7 @@ export default function MyEventsPage() {
           imageUrl: event.imageUrl,
           tags: event.tags || [],
           capacity: event.capacity,
+          ticketPrice: event.ticketPrice || 0, // Include ticket price
           attendeesCount: event.attendeeCount || 0,
           organizerName: event.organizerName || 'Unknown',
           participantStatus: event.participantStatus || 'confirmed', // Add participant status
@@ -371,6 +373,11 @@ export default function MyEventsPage() {
                         <Clock className="h-4 w-4 inline mr-1" />
                         Your registration is pending approval from the organizer. You can cancel your request anytime.
                       </p>
+                      {event.ticketPrice && event.ticketPrice > 0 && (
+                        <p className="text-xs text-yellow-700 dark:text-yellow-500 mt-1">
+                          💳 Payment will be required once approved (Rp {event.ticketPrice.toLocaleString('id-ID')})
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -380,6 +387,17 @@ export default function MyEventsPage() {
                       <p className="text-sm text-red-800 dark:text-red-400">
                         <AlertTriangle className="h-4 w-4 inline mr-1" />
                         Your registration was rejected by the organizer. You can try joining again.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Payment Required Notice for Paid Events */}
+                  {event.participantStatus === 'confirmed' && event.ticketPrice && event.ticketPrice > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-blue-800 dark:text-blue-400">
+                        <CreditCard className="h-4 w-4 inline mr-1" />
+                        This is a paid event (Rp {event.ticketPrice.toLocaleString('id-ID')}). 
+                        Complete payment to confirm your ticket.
                       </p>
                     </div>
                   )}
@@ -462,6 +480,7 @@ export default function MyEventsPage() {
                       eventId={event.id}
                       isJoined={event.participantStatus === 'confirmed'}
                       eventName={event.name}
+                      ticketPrice={event.ticketPrice}
                       joinStatus={event.participantStatus === 'pending' ? 'pending' : 
                                  event.participantStatus === 'rejected' ? 'rejected' :
                                  event.participantStatus === 'confirmed' ? 'joined' : 'not_joined'}

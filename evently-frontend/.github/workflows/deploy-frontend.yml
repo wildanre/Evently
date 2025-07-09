@@ -1,0 +1,133 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run lint
+      run: npm run lint
+      
+    - name: Run type check
+      run: npx tsc --noEmit
+      
+    - name: Run tests
+      run: npm run test:ci
+      
+    - name: Build application
+      run: npm run build
+      env:
+        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+        NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+        NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+  deploy-preview:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+      
+    - name: Pull Vercel Environment Information
+      run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      
+    - name: Build Project Artifacts
+      run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      
+    - name: Deploy Project Artifacts to Vercel
+      run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-production:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+      
+    - name: Pull Vercel Environment Information
+      run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      
+    - name: Build Project Artifacts
+      run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      
+    - name: Deploy Project Artifacts to Vercel
+      run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      
+    - name: Upload Environment Variables to Vercel
+      run: |
+        vercel env add NEXT_PUBLIC_API_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXT_PUBLIC_API_URL }}"
+        vercel env add NEXT_PUBLIC_API_BASE_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXT_PUBLIC_API_BASE_URL }}"
+        vercel env add NEXTAUTH_SECRET production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXTAUTH_SECRET }}"
+        vercel env add NEXTAUTH_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXTAUTH_URL }}"
+        vercel env add GOOGLE_CLIENT_ID production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.GOOGLE_CLIENT_ID }}"
+        vercel env add GOOGLE_CLIENT_SECRET production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+
+  lighthouse-check:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install Lighthouse CI
+      run: npm install -g @lhci/cli@0.12.x
+      
+    - name: Run Lighthouse CI
+      run: lhci autorun
+      env:
+        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        LHCI_SERVER_TOKEN: ${{ secrets.LHCI_SERVER_TOKEN }}

@@ -64,6 +64,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: evently-frontend/pnpm-lock.yaml
+      
+      - name: Create environment file
+        working-directory: ./evently-frontend
+        run: |
+          echo "NEXT_PUBLIC_API_URL=https://evently-backend-amber.vercel.app" >> .env
+          echo "NEXT_PUBLIC_API_BASE_URL=https://evently-backend-amber.vercel.app" >> .env
+          echo "NEXTAUTH_URL=https://evently-nine-iota.vercel.app" >> .env
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+      
       # Deploy to Vercel
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25

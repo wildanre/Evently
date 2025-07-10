@@ -449,7 +449,7 @@ export default function CreatedEventsPage() {
                     
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <MapPin className="h-4 w-4 text-blue-600" />
-                      <span className="line-clamp-1">{event.location}</span>
+                      <span className="line-clamp-2 break-normal w-auto">{event.location}</span>
                     </div>
                     
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">

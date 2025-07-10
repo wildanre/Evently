@@ -80,12 +80,12 @@ export function LocationDialog({
             variant="ghost"
             className="w-full text-left justify-start p-0 h-auto text-gray-900 dark:text-white hover:bg-transparent"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 max-w-[80vw] sm:max-w-[630px]">
               <div className="flex-1">
                 <p className="text-sm font-medium">
                   {currentLocation ? "Edit Event Location" : "Add Event Location *"}
                 </p>
-                <p className="text-xs text-gray-500 line-clamp-1">
+                <p className="text-xs text-gray-500 line-clamp-1 overflow-hidden text-ellipsis">
                   {currentLocation || "Offline location or virtual link (required)"}
                 </p>
                 {!currentLocation && (

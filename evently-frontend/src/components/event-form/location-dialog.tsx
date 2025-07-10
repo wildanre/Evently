@@ -85,7 +85,7 @@ export function LocationDialog({
                 <p className="text-sm font-medium">
                   {currentLocation ? "Edit Event Location" : "Add Event Location *"}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 line-clamp-1">
                   {currentLocation || "Offline location or virtual link (required)"}
                 </p>
                 {!currentLocation && (

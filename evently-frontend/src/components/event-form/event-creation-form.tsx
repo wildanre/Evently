@@ -15,6 +15,7 @@ import { API_ENDPOINTS } from "@/lib/api";
 import { debugApiConfig } from "@/lib/debug-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { PAYMENT_CONFIG, formatAmount } from "@/lib/payment-config";
 
 export default function EventCreationForm() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -182,6 +183,13 @@ export default function EventCreationForm() {
     if (!description.trim()) return false; // Description is required
     if (!location.trim()) return false; // Location is required
     
+    // Validate paid ticket price
+    if (ticketType === "paid") {
+      const price = parseFloat(ticketPrice) || 0;
+      if (price < PAYMENT_CONFIG.SETTINGS.MIN_AMOUNT) return false;
+      if (price > PAYMENT_CONFIG.SETTINGS.MAX_AMOUNT) return false;
+    }
+    
     // Check if dates are valid and in the future
     const now = new Date();
     if (startDate < now) return false;
@@ -207,6 +215,18 @@ export default function EventCreationForm() {
     if (!eventName.trim()) errors.push("Event name");
     if (!description.trim()) errors.push("Description");
     if (!location.trim()) errors.push("Location");
+    
+    // Validate ticket price for paid events
+    if (ticketType === "paid") {
+      const price = parseFloat(ticketPrice) || 0;
+      if (!ticketPrice || price <= 0) {
+        errors.push("Ticket price is required for paid events");
+      } else if (price < PAYMENT_CONFIG.SETTINGS.MIN_AMOUNT) {
+        errors.push(`Minimum ticket price is ${formatAmount(PAYMENT_CONFIG.SETTINGS.MIN_AMOUNT)}`);
+      } else if (price > PAYMENT_CONFIG.SETTINGS.MAX_AMOUNT) {
+        errors.push(`Maximum ticket price is ${formatAmount(PAYMENT_CONFIG.SETTINGS.MAX_AMOUNT)}`);
+      }
+    }
     
     const now = new Date();
     if (startDate < now) {
@@ -324,7 +344,8 @@ export default function EventCreationForm() {
       tags: tags.filter(tag => tag.trim() !== ""), // Remove empty tags
       visibility: visibility === "public", // Convert to boolean
       requireApproval: requireApproval,
-      imageUrl: imageUrl.trim() || ""
+      imageUrl: imageUrl.trim() || "",
+      ticketPrice: ticketType === "paid" ? parseFloat(ticketPrice) || 0 : 0
     };
     
     console.log("Creating event with payload:", eventPayload);

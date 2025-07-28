@@ -154,10 +154,12 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
     try {
       // Fetch real event details
       const details = await getEventDetails(event.id);
+      console.log('Event details fetched in slider:', details); // Debug log
       setEventDetails(details);
       
       // Check join status
       const status = await checkJoinStatus(event.id);
+      console.log('Join status in slider:', status); // Debug log
       setJoinStatus(status);
       
       // Generate mock attendees for demo (replace with real API call when available)
@@ -171,7 +173,8 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
         attendeeCount: event.attendees,
         status: 'upcoming',
         tags: event.tags || [],
-        capacity: event.capacity || 100
+        capacity: event.capacity || 100,
+        ticketPrice: 0 // Add default ticket price
       });
       setAttendees(generateMockAttendees(event.attendees));
     } finally {
@@ -291,6 +294,14 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
       });
     }
   }, [isFavorited]);
+
+  const handlePaymentRequired = useCallback(() => {
+    if (!event) return;
+    
+    // Redirect to payment page or show payment form
+    const paymentUrl = `/payment/mock?paymentId=${event.id}&amount=${eventDetails?.ticketPrice || 0}&method=qris`;
+    window.location.href = paymentUrl;
+  }, [event, eventDetails]);
 
   // Return early AFTER all hooks are called
   if (!event) return null;
@@ -597,9 +608,18 @@ const EventSlider = ({ event, isOpen, onClose, onJoinStatusChange }: EventSlider
                 joinStatus={joinStatus}
                 eventName={event.title}
                 requireApproval={event.requireApproval}
+                ticketPrice={eventDetails?.ticketPrice || 0}
                 onJoinStatusChange={handleJoinStatusChange}
+                onPaymentRequired={handlePaymentRequired}
                 className="w-full"
               />
+              
+              {/* Debug info - remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-neutral-500 p-2 bg-neutral-800 rounded">
+                  Debug: ticketPrice={eventDetails?.ticketPrice}, joinStatus={joinStatus}
+                </div>
+              )}
               
               {/* Secondary Actions */}
               <div className="grid grid-cols-3 gap-2">

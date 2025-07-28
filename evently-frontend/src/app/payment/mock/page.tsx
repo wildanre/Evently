@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, CreditCard, QrCode } from "lucide-react";
@@ -8,7 +8,30 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
 
-function MockPaymentPage() {
+// Loading component for Suspense fallback
+function PaymentMockLoading() {
+  return (
+    <div className="container mx-auto p-4 sm:p-6 max-w-2xl">
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <CardTitle className="text-center text-xl sm:text-2xl flex items-center justify-center gap-2">
+            <CreditCard className="h-6 w-6" />
+            Loading Payment...
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="text-center space-y-6">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-600 dark:text-gray-400">Preparing payment page...</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Main component that uses useSearchParams
+function MockPaymentContent() {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending');
   const [countdown, setCountdown] = useState(3);
   const searchParams = useSearchParams();
@@ -333,6 +356,15 @@ function MockPaymentPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+function MockPaymentPage() {
+  return (
+    <Suspense fallback={<PaymentMockLoading />}>
+      <MockPaymentContent />
+    </Suspense>
   );
 }
 
